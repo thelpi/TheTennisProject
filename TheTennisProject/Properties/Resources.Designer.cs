@@ -7,7 +7,8 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-
+#pragma warning disable CS1587
+#pragma warning disable CS1570
 namespace TheTennisProject.Properties {
     using System;
     
@@ -61,6 +62,26 @@ namespace TheTennisProject.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap player_pause {
+            get {
+                object obj = ResourceManager.GetObject("player_pause", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap player_play {
+            get {
+                object obj = ResourceManager.GetObject("player_play", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to dupliquer table année précédente
         ///extraire les codes sans doublons sous Excel
         ///vérifier les changements de tournoi sur wikipédia
@@ -82,11 +103,8 @@ namespace TheTennisProject.Properties {
                 return ResourceManager.GetString("procedure_manuelle_tournois", resourceCulture);
             }
         }
-
-#pragma warning disable CS1570 // XML comment has badly formed XML    
         
-#pragma warning disable CS1587 // XML comment is not placed on a valid language element
-/// <summary>
+        /// <summary>
         ///   Looks up a localized string similar to SET SQL_MODE = &quot;NO_AUTO_VALUE_ON_ZERO&quot;;
         ///SET time_zone = &quot;+00:00&quot;;
         ///
@@ -103,8 +121,6 @@ namespace TheTennisProject.Properties {
         ///  `original_key` varc [rest of string was truncated]&quot;;.
         /// </summary>
         internal static string the_tennis_project_DB {
-#pragma warning restore CS1587 // XML comment is not placed on a valid language element
-#pragma warning restore CS1570 // XML comment has badly formed XML
             get {
                 return ResourceManager.GetString("the_tennis_project_DB", resourceCulture);
             }

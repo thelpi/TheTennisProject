@@ -233,6 +233,12 @@
   <ItemGroup>
     <None Include="Resources\procedure_manuelle_tournois.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\player_play.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\player_pause.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

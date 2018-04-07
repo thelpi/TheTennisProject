@@ -6,7 +6,6 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
 using TheTennisProject.Properties;
 using TheTennisProject.Services;
 
@@ -40,6 +39,35 @@ namespace TheTennisProject.Graphics
         // historique des colonnes de tri du tablean de classement des joueurs (onglet "Classement ATP")
         private Dictionary<string, bool> _rankingStatsSortParameter = new Dictionary<string, bool>();
 
+        #region Propriétés de l'animation ATP
+
+        // Indique que l'animation "ATP Animation" est démarrée
+        private volatile bool _animationIsRunning = false;
+
+        // Timer pour l'animation "ATP Animation"
+        private System.Timers.Timer _animationTimer;
+
+        // Délai entre les rafraichissements de l'animation "ATP Animation"
+        private double _animationRefreshTickTime = 100;
+
+        // Date actuelle de l'animation (fin)
+        private DateTime? _animationCurrentDate;
+
+        // Indique qu'un "tick" de l'animation est en cours de calcul
+        private volatile bool _animationisComputing;
+
+        // Date du premier classement ATP possible
+        private readonly DateTime ATP_DEBUT = new DateTime((int)Settings.Default.OpenEraYearBegin, 1, 7);
+
+        // Date de début de l'animation
+        private DateTime? _animationBeginDate = null;
+
+        // Liste observable du classement ATP
+        private System.Collections.ObjectModel.ObservableCollection<Bindings.PlayerAtpRanking> _observableListAtpLive =
+            new System.Collections.ObjectModel.ObservableCollection<Bindings.PlayerAtpRanking>();
+
+        #endregion
+
         #endregion
 
         // Constructeur privé.
@@ -52,6 +80,12 @@ namespace TheTennisProject.Graphics
                     SqlMapping.Instance.Import(sender as BackgroundWorker);
                 }, true, true, null, null
             );
+            _animationTimer = new System.Timers.Timer(_animationRefreshTickTime);
+            _animationTimer.Elapsed += _animationTimer_Elapsed;
+            lstAtpLiveRanking.ItemsSource = _observableListAtpLive;
+            btnAtpLiveStart.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play) };
+            dtpAtpLiveDateBegin.SelectedDate = ATP_DEBUT;
+            dtpAtpLiveDateBegin.DisplayDateStart = ATP_DEBUT;
         }
 
         /// <summary>
@@ -62,11 +96,19 @@ namespace TheTennisProject.Graphics
         /// <param name="isMainLoading">Est chargement principal oui/non.</param>
         /// <param name="todoWithResult">Action éventuelle (sinon <c>Null</c>) à exécuter post-traitement, utilisant comme argument le résultat de <paramref name="handler"/>.</param>
         /// <param name="doWorkArgs">Argument évetuel à fournir à la méthode <paramref name="handler"/>.</param>
-        private void LoadBackgroundDatas(DoWorkEventHandler handler, bool reportsProgress, bool isMainLoading, Action<object> todoWithResult, object doWorkArgs)
+        /// <param name="noBlinking">Si vrai, la fenêtre reste active pendant le chargement. Ecrase la valeur de <paramref name="reportsProgress"/>.</param>
+        private void LoadBackgroundDatas(DoWorkEventHandler handler, bool reportsProgress, bool isMainLoading, Action<object> todoWithResult, object doWorkArgs, bool noBlinking = false)
         {
-            lblLoadSqlMapping.Content = "Chargement...";
-            stpLoadSqlMapping.Visibility = Visibility.Visible;
-            tctMain.IsEnabled = false;
+            if (!noBlinking)
+            {
+                lblLoadSqlMapping.Content = "Chargement...";
+                stpLoadSqlMapping.Visibility = Visibility.Visible;
+                tctMain.IsEnabled = false;
+            }
+            else
+            {
+                reportsProgress = false;
+            }
 
             BackgroundWorker worker = new BackgroundWorker();
             worker.WorkerReportsProgress = reportsProgress;
@@ -94,8 +136,15 @@ namespace TheTennisProject.Graphics
                 {
                     todoWithResult.Invoke(evt.Result);
                 }
-                stpLoadSqlMapping.Visibility = Visibility.Collapsed;
-                tctMain.IsEnabled = true;
+                if (!noBlinking)
+                {
+                    stpLoadSqlMapping.Visibility = Visibility.Collapsed;
+                    tctMain.IsEnabled = true;
+                }
+                else
+                {
+                    lblLoadSqlMapping.Content = string.Empty;
+                }
                 if (isMainLoading)
                 {
                     BuildMainTabControl();
@@ -422,8 +471,81 @@ namespace TheTennisProject.Graphics
         #region Onglet "Classement ATP"
 
         // calcule le classement ATP aux dates sélectionnées et crée la liaison avec le composant ListView
-        private void RecomputeAtpRanking()
+        private void RecomputeAtpRanking(bool forLiveAnimation)
         {
+            if (forLiveAnimation)
+            {
+                if (_animationisComputing)
+                {
+                    return;
+                }
+                _animationisComputing = true;
+            }
+
+            DateTime dateBegin;
+            DateTime dateEnd;
+            if (forLiveAnimation)
+            {
+                if (!_animationBeginDate.HasValue)
+                {
+                    _animationBeginDate = dtpAtpLiveDateBegin.SelectedDate;
+                }
+
+                bool yearStep = cbbAtpLiveStep.SelectedIndex == 1;
+                if (!_animationCurrentDate.HasValue)
+                {
+                    _animationCurrentDate = dtpAtpLiveDateBegin.SelectedDate.Value;
+                }
+                else
+                {
+                    _animationCurrentDate = yearStep ? _animationCurrentDate.Value.AddYears(1) : _animationCurrentDate.Value.AddDays(7);
+                }
+                if (chkAptLiveCumuled.IsChecked == true)
+                {
+                    dateBegin = _animationBeginDate.Value;
+                }
+                else
+                {
+                    if (yearStep)
+                    {
+                        dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+                           ATP_DEBUT : _animationCurrentDate.Value.AddYears(-1);
+                    }
+                    else
+                    {
+                        dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+                            _animationBeginDate.Value : _animationCurrentDate.Value.AddYears(-1);
+                    }
+                }
+                dateEnd = _animationCurrentDate.Value;
+            }
+            else
+            {
+                dateBegin = dtpAtpRankingDateBegin.DisplayDate;
+                dateEnd = dtpAtpRankingDateEnd.DisplayDate;
+            }
+
+            object[] asyncCallArgs = forLiveAnimation ?
+                new object[]
+                {
+                    dateBegin,
+                    dateEnd,
+                    string.Empty,
+                    new List<Level>(),
+                    new List<Surface>(),
+                    false,
+                    null
+                } : new object[]
+                {
+                    dateBegin,
+                    dateEnd,
+                    txtPlayerName.Text,
+                    lsbSelectLevel.SelectedItems.Cast<Level>(),
+                    lsbelectSurface.SelectedItems.Cast<Surface>(),
+                    chkIsIndoor.IsChecked == true,
+                    cbbNationalityFilter.SelectedItem
+                };
+
             LoadBackgroundDatas(
                 delegate(object sender, DoWorkEventArgs evt)
                 {
@@ -529,25 +651,28 @@ namespace TheTennisProject.Graphics
                     */
                     #endregion
 
-                    lstAtpRanking.ItemsSource = result as List<Bindings.PlayerAtpRanking>;
+                    List<Bindings.PlayerAtpRanking> typedResult = result as List<Bindings.PlayerAtpRanking>;
+                    if (forLiveAnimation)
+                    {
+                        _observableListAtpLive.Clear();
+                        typedResult.ForEach(_ => _observableListAtpLive.Add(_));
+                        lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
+                        _animationisComputing = false;
+                    }
+                    else
+                    {
+                        lstAtpRanking.ItemsSource = typedResult;
+                    }
                 },
-                new object[]
-                {
-                    dtpAtpRankingDateBegin.DisplayDate,
-                    dtpAtpRankingDateEnd.DisplayDate,
-                    txtPlayerName.Text,
-                    lsbSelectLevel.SelectedItems.Cast<Level>(),
-                    lsbelectSurface.SelectedItems.Cast<Surface>(),
-                    chkIsIndoor.IsChecked == true,
-                    cbbNationalityFilter.SelectedItem
-                }
+                asyncCallArgs,
+                forLiveAnimation
             );
         }
 
         // se produit quand le bouton de filtrage est cliqué
         private void btnFilterAction_Click(object sender, RoutedEventArgs e)
         {
-            RecomputeAtpRanking();
+            RecomputeAtpRanking(false);
         }
 
         // se produit quand une entête de colonne est cliquée pour tri
@@ -556,6 +681,13 @@ namespace TheTennisProject.Graphics
             List<Bindings.PlayerAtpRanking> fullList = lstAtpRanking.ItemsSource as List<Bindings.PlayerAtpRanking>;
 
             string columnName = (sender as GridViewColumnHeader).Name.Replace("StatType_", string.Empty);
+            // ce hack permet de renommer proprement la colonne de tri
+            // qui est nommée ainsi afin d'éviter un warning sur le fait que le nom de la colonne substitue la propriété "Name" de la fenêtre
+            if (columnName == "PName")
+            {
+                columnName = "Name";
+            }
+
             bool isDesc = false;
             if (_rankingStatsSortParameter.ContainsKey(columnName))
             {
@@ -578,7 +710,7 @@ namespace TheTennisProject.Graphics
 
         #endregion
 
-        #region "Palmarès tournoi"
+        #region Onglet "Palmarès tournoi"
 
         // Se produit quand la sélection du sélecteur de tournoi est modifiée
         private void cbbPalmaresTournament_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -596,6 +728,41 @@ namespace TheTennisProject.Graphics
             }
 
             lstPalmarestDetails.ItemsSource = palmares.OrderByDescending(_ => _.Year);
+        }
+
+        #endregion
+
+        #region Onglet "ATP Animation"
+
+        // Se produit au clic sur le bouton d'action
+        private void btnAtpLiveStart_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_animationIsRunning)
+            {
+                _animationIsRunning = true;
+                btnAtpLiveStart.Content =
+                    new Image()
+                    {
+                        Source = Tools.ImageSourceForBitmap(Properties.Resources.player_pause)
+                    };
+                _animationTimer.Start();
+            }
+            else
+            {
+                _animationTimer.Stop();
+                _animationIsRunning = false;
+                btnAtpLiveStart.Content =
+                    new Image()
+                    {
+                        Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play)
+                    };
+            }
+        }
+
+        // Se produit au "tick" du timer qui gère l'animation ATP
+        private void _animationTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke(new Action<bool>(RecomputeAtpRanking), true);
         }
 
         #endregion

@@ -414,7 +414,7 @@
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn>
-                                        <GridViewColumnHeader Name="Name" Click="gdvAtpRanking_header_Click">
+                                        <GridViewColumnHeader Name="PName" Click="gdvAtpRanking_header_Click">
                                             Nom
                                         </GridViewColumnHeader>
                                         <GridViewColumn.CellTemplate>
@@ -618,6 +618,187 @@
                             </ListView.View>
                         </ListView>
                     </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <!-- Note : le contenu de cet onglet est rédigé en anglais -->
+            <TabItem Header="ATP Animation">
+                <DockPanel>
+                    <StackPanel Height="30" DockPanel.Dock="Top" Orientation="Horizontal">
+                        <DatePicker VerticalAlignment="Center" Height="25" SelectedDateFormat="Short" DisplayDateEnd="01/01/2100" FirstDayOfWeek="Sunday" Name="dtpAtpLiveDateBegin" Margin="0, 0, 5, 0" />
+                        <ComboBox Name="cbbAtpLiveStep" VerticalAlignment="Center" Margin="0, 0, 5, 0">
+                            <ComboBoxItem IsSelected="True">By week</ComboBoxItem>
+                            <ComboBoxItem>By year</ComboBoxItem>
+                        </ComboBox>
+                        <CheckBox Name="chkAptLiveCumuled" VerticalAlignment="Center" VerticalContentAlignment="Center" Content="Cumuled ?" Margin="0, 0, 5, 0" />
+                        <Button Name="btnAtpLiveStart" Height="25" Width="25" VerticalAlignment="Center" Click="btnAtpLiveStart_Click" Margin="0, 0, 5, 0" />
+                        <Label Name="lblAtpLivePeriod" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <ListView DockPanel.Dock="Bottom" Name="lstAtpLiveRanking" AlternationCount="2" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True">
+                        <ListView.Resources>
+                            <Style TargetType="ListViewItem">
+                                <Style.Triggers>
+                                    <Trigger Property="ItemsControl.AlternationIndex"  Value="0">
+                                        <Setter Property="Background" Value="White" />
+                                    </Trigger>
+                                    <Trigger Property="ItemsControl.AlternationIndex"  Value="1">
+                                        <Setter Property="Background" Value="LightGray" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListView.Resources>
+                        <ListView.View>
+                            <GridView x:Name="gdvAtpLiveRanking">
+                                <GridViewColumn Header="Rank">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Ranking}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Name">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=InnerPlayer.Name}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <!-- TODO : à remplacer par un système dynamique -->
+                                <GridViewColumn Header="Tourn. win">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)is_winner]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Points">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)points]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Wins">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)match_win]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Loses">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)match_lost]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Set wins">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)set_win]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Set loses">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)set_lost]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Gm win">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)game_win]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Gm loses">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)game_lost]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="TB wins">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)tb_win]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="TB loses">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)tb_lost]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Aces count">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)ace]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="DbFlt count">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)d_f]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="SvPts count">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)sv_pt]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="1stSv In">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)first_in]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="1stSv wins">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)first_won]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="2ndSv wins">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)second_won]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="SvGm count">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)sv_gms]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="BkPts saved">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)bp_saved]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="BkPts count">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Statistics[(localSvc:StatType)bp_faced]}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
                 </DockPanel>
             </TabItem>
         </TabControl>

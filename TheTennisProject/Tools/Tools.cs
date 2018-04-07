@@ -1,9 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using TheTennisProject.Properties;
 using TheTennisProject.Services;
 
@@ -14,6 +20,7 @@ namespace TheTennisProject
     /// </summary>
     public static class Tools
     {
+        // Le nombre exact de jours dans une année en moyenne
         private const double DAYS_IN_A_YEAR = 365.256363;
         /// <summary>
         /// Année par défaut (date vide).
@@ -195,6 +202,34 @@ namespace TheTennisProject
             beginDate = winBeginDate;
             beginNumMatch = winBeginNumMatch;
             return maxWin;
+        }
+
+        /// <summary>
+        /// Fonction nécessaire au bon fonctionnement de la méthode <see cref="ImageSourceForBitmap(Bitmap)"/>.
+        /// </summary>
+        /// <remarks>Je ne sais pas son utilité réelle.</remarks>
+        /// <param name="hObject">Un objet <see cref="IntPtr"/>.</param>
+        /// <returns>Un booléen.</returns>
+        [DllImport("gdi32.dll", EntryPoint = "DeleteObject")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool DeleteObject([In] IntPtr hObject);
+
+        /// <summary>
+        /// Transforme une image au format <see cref="Bitmap"/> vers un contenu de type <see cref="ImageSource"/>.
+        /// </summary>
+        /// <param name="bmp">L'image à convertir.</param>
+        /// <returns>L'image convertie.</returns>
+        public static ImageSource ImageSourceForBitmap(Bitmap bmp)
+        {
+            IntPtr handle = bmp.GetHbitmap();
+            try
+            {
+                return Imaging.CreateBitmapSourceFromHBitmap(handle, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            }
+            finally
+            {
+                DeleteObject(handle);
+            }
         }
 
         #region Traductions et attributs d'énumérations
