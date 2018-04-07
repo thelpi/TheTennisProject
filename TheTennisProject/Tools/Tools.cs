@@ -83,7 +83,7 @@ namespace TheTennisProject
         public static void WriteLog(string line)
         {
             // TODO : vérifier la validité du chemin d'accès au fichier
-            using (var writer = new System.IO.StreamWriter(Properties.Settings.Default.ErrorLogFilePath, true))
+            using (StreamWriter writer = new StreamWriter(Settings.Default.ErrorLogFilePath, true))
             {
                 writer.WriteLine(line);
             }
@@ -210,13 +210,13 @@ namespace TheTennisProject
         public static string GetEnumDescription<T>(object value) where T : struct, IConvertible
         {
             Type type = typeof(T);
-            var name = Enum.GetNames(type).Where(f => f.Equals(value.ToString(), StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+            string name = Enum.GetNames(type).Where(f => f.Equals(value.ToString(), StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
 
             if (name == null)
             {
                 return string.Empty;
             }
-            var customAttribute = type.GetField(name).GetCustomAttributes(typeof(DescriptionAttribute), false);
+            object[] customAttribute = type.GetField(name).GetCustomAttributes(typeof(DescriptionAttribute), false);
             return customAttribute.Length > 0 ? ((DescriptionAttribute)customAttribute[0]).Description : name;
         }
 
@@ -231,13 +231,13 @@ namespace TheTennisProject
         public static string GetEnumSqlMapping<T>(object value) where T : struct, IConvertible
         {
             Type type = typeof(T);
-            var name = Enum.GetNames(type).Where(f => f.Equals(value.ToString(), StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+            string name = Enum.GetNames(type).Where(f => f.Equals(value.ToString(), StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
 
             if (name == null)
             {
                 return string.Empty;
             }
-            var customAttribute = type.GetField(name).GetCustomAttributes(typeof(SqlMappingAttribute), false);
+            object[] customAttribute = type.GetField(name).GetCustomAttributes(typeof(SqlMappingAttribute), false);
             return customAttribute.Length > 0 ? ((SqlMappingAttribute)customAttribute[0]).SqlMapping : name;
         }
 
@@ -250,13 +250,13 @@ namespace TheTennisProject
         public static T GetEnumValueFromSqlMapping<T>(string sqlMapping) where T : struct, IConvertible
         {
             Type type = typeof(T);
-            var names = Enum.GetNames(type);
+            string[] names = Enum.GetNames(type);
 
             if (names != null && sqlMapping != null)
             {
-                foreach (var name in names)
+                foreach (string name in names)
                 {
-                    var customAttribute = type.GetField(name).GetCustomAttributes(typeof(SqlMappingAttribute), false);
+                    object[] customAttribute = type.GetField(name).GetCustomAttributes(typeof(SqlMappingAttribute), false);
                     if (customAttribute.Length > 0
                         && sqlMapping.Equals(((SqlMappingAttribute)customAttribute[0]).SqlMapping, StringComparison.CurrentCultureIgnoreCase))
                     {
@@ -279,7 +279,7 @@ namespace TheTennisProject
         /// <returns>Traduction de l'intitulé de la surface.</returns>
         public static string GetTranslation(this Surface surface)
         {
-            var member = surface.GetType().GetMember(surface.ToString())[0];
+            System.Reflection.MemberInfo member = surface.GetType().GetMember(surface.ToString())[0];
             return ((TranslationAttribute)Attribute.GetCustomAttribute(member, typeof(TranslationAttribute))).Translation;
         }
 
@@ -290,7 +290,7 @@ namespace TheTennisProject
         /// <returns>Traduction de l'intitulé du niveau.</returns>
         public static string GetTranslation(this Level level)
         {
-            var member = level.GetType().GetMember(level.ToString())[0];
+            System.Reflection.MemberInfo member = level.GetType().GetMember(level.ToString())[0];
             return ((TranslationAttribute)Attribute.GetCustomAttribute(member, typeof(TranslationAttribute))).Translation;
         }
 
@@ -301,7 +301,7 @@ namespace TheTennisProject
         /// <returns>Traduction de l'intitulé du tour.</returns>
         public static string GetTranslation(this Round round)
         {
-            var member = round.GetType().GetMember(round.ToString())[0];
+            System.Reflection.MemberInfo member = round.GetType().GetMember(round.ToString())[0];
             return ((TranslationAttribute)Attribute.GetCustomAttribute(member, typeof(TranslationAttribute))).Translation;
         }
 

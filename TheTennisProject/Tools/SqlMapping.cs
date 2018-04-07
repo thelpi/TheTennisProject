@@ -72,9 +72,12 @@ namespace TheTennisProject
             CreatePlayers();
             CreatePointsAtpScale();
             CreateTournaments();
-            CreateEditions();
-            CreateMatches();
             CreateCountries();
+            CreateEditions();
+            if (Properties.Settings.Default.ComputeMatchesWhileLoading)
+            {
+                CreateMatches(null, null);
+            }
 
             // SetPlayerStatsForYearEditions(2017);
         }
@@ -82,8 +85,16 @@ namespace TheTennisProject
         // Calcule le nombre de données à charger.
         private void ComputeDataCount()
         {
-            var tables = new string[] { "points", "editions", "tournaments", "players", "players_nat_history", "matches", "edition_player_stats", "countries" };
-            foreach (var table in tables)
+            List<string> tables = new List<string> { "points", "editions", "tournaments", "players", "players_nat_history", "countries" };
+            if (Properties.Settings.Default.ComputeStatisticsWhileLoading)
+            {
+                tables.Add("edition_player_stats");
+            }
+            if (Properties.Settings.Default.ComputeMatchesWhileLoading)
+            {
+                tables.Add("matches");
+            }
+            foreach (string table in tables)
             {
                 _totalDataCount += SqlTools.ExecuteScalar(string.Format("select count(*) from {0}", table), 0);
             }
@@ -93,7 +104,7 @@ namespace TheTennisProject
         private void CreatePlayers()
         {
             string query = "select * from players";
-            using (var reader = SqlTools.ExecuteReader(query))
+            using (DataTableReader reader = SqlTools.ExecuteReader(query))
             {
                 while (reader.Read())
                 {
@@ -118,15 +129,11 @@ namespace TheTennisProject
 
             // Importation de l'historique des nationalités.
             query = "select * from players_nat_history order by date_end";
-            using (var reader = SqlTools.ExecuteReader(query))
+            using (DataTableReader reader = SqlTools.ExecuteReader(query))
             {
                 while (reader.Read())
                 {
-                    var player = BaseService.GetByID<Player>(reader.GetUint64("ID"));
-                    if (player != null)
-                    {
-                        player.AddNationalitiesHistoryEntry(reader.GetString("nationality"), reader.GetDateTime("date_end"));
-                    }
+                    Player.AddNationalitiesHistoryEntry(reader.GetUint64("ID"), reader.GetString("nationality"), reader.GetDateTime("date_end"));
 
                     _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
                 }
@@ -138,7 +145,7 @@ namespace TheTennisProject
         {
             // Importation des tournois.
             string query = "select * from tournaments";
-            using (var reader = SqlTools.ExecuteReader(query))
+            using (DataTableReader reader = SqlTools.ExecuteReader(query))
             {
                 while (reader.Read())
                 {
@@ -160,12 +167,12 @@ namespace TheTennisProject
         // Procède à l'importation des éditions de tournoi.
         private void CreateEditions()
         {
-            var query = "select * from editions order by tournament_ID, year";
-            using (var reader = SqlTools.ExecuteReader(query))
+            string query = "select * from editions order by tournament_ID, year";
+            using (DataTableReader reader = SqlTools.ExecuteReader(query))
             {
                 while (reader.Read())
                 {
-                    var edition = new Edition(reader.GetUint32("ID"),
+                    Edition edition = new Edition(reader.GetUint32("ID"),
                         reader.GetUint32("tournament_ID"),
                         reader.GetUint32("year"),
                         reader.GetUint16("draw_size"),
@@ -177,24 +184,9 @@ namespace TheTennisProject
                         reader["slot_order"] == DBNull.Value ? (byte)0 : reader.GetByte("slot_order"),
                         (Surface)reader.GetByte("surface_ID"));
 
-                    query = "select * from edition_player_stats where edition_ID = @edition";
-                    using (var subReader = SqlTools.ExecuteReader(query, new SqlParam("@edition", DbType.UInt32, edition.ID)))
+                    if (Properties.Settings.Default.ComputeStatisticsWhileLoading)
                     {
-                        while (subReader.Read())
-                        {
-                            ulong playerId = subReader.GetUint64("player_ID");
-                            for (var i = 0; i < subReader.FieldCount; i++)
-                            {
-                                var columnName = subReader.GetName(i);
-                                if (columnName == "edition_ID" || columnName == "player_ID")
-                                {
-                                    continue;
-                                }
-                                edition.AddPlayerStatistics(playerId, Tools.GetEnumValueFromSqlMapping<StatType>(columnName), Convert.ToUInt32(subReader[columnName]));
-                            }
-
-                            _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
-                        }
+                        CreateEditionsStatistics(edition);
                     }
 
                     _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
@@ -202,13 +194,74 @@ namespace TheTennisProject
             }
         }
 
-        // Procède à l'importation des matchs.
-        private void CreateMatches()
+        /// <summary>
+        /// Charge les statistiques associées à une édition de tournoi.
+        /// </summary>
+        /// <param name="edition">Edition de tournoi.</param>
+        /// <exception cref="ArgumentNullException">L'argument <paramref name="edition"/> est <c>Null</c>.</exception>
+        public void CreateEditionsStatistics(Edition edition)
         {
+            if (edition == null)
+            {
+                throw new ArgumentNullException(nameof(edition));
+            }
+
+            if (edition.StatisticsAreCompute)
+            {
+                return;
+            }
+
+            string query = "select * from edition_player_stats where edition_ID = @edition";
+            using (DataTableReader subReader = SqlTools.ExecuteReader(query, new SqlParam("@edition", DbType.UInt32, edition.ID)))
+            {
+                while (subReader.Read())
+                {
+                    ulong playerId = subReader.GetUint64("player_ID");
+                    for (int i = 0; i < subReader.FieldCount; i++)
+                    {
+                        string columnName = subReader.GetName(i);
+                        if (columnName == "edition_ID" || columnName == "player_ID")
+                        {
+                            continue;
+                        }
+
+                        edition.AddPlayerStatistics(playerId, Tools.GetEnumValueFromSqlMapping<StatType>(columnName), Convert.ToUInt32(subReader[columnName]));
+                    }
+
+                    if (Properties.Settings.Default.ComputeStatisticsWhileLoading)
+                    {
+                        _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Importe des matchs depuis la base de données selon des paramètres optionnels.
+        /// </summary>
+        /// <param name="editionId">Identifiant d'édition de tournoi.</param>
+        /// <param name="playerId">Identifiant de joueur.</param>
+        /// <returns>Les matchs importés.</returns>
+        public IEnumerable<Match> CreateMatches(uint? editionId, ulong? playerId)
+        {
+            List<Match> matchs = new List<Match>();
+
             Match.SetBatchMode(true);
 
-            string query = "select * from matches";
-            using (var reader = SqlTools.ExecuteReader(query))
+            string query = "select * from matches where 1 = 1";
+            List<SqlParam> sqlParams = new List<SqlParam>();
+            if (editionId.HasValue)
+            {
+                query += " and edition_ID = @edition";
+                sqlParams.Add(new SqlParam("@edition", DbType.UInt32, editionId.Value));
+            }
+            if (playerId.HasValue)
+            {
+                query += " and (winner_ID = @player or loser_ID = @player)";
+                sqlParams.Add(new SqlParam("@player", DbType.UInt32, playerId.Value));
+            }
+
+            using (DataTableReader reader = SqlTools.ExecuteReader(query, sqlParams.ToArray()))
             {
                 while (reader.Read())
                 {
@@ -236,21 +289,27 @@ namespace TheTennisProject
                     {
                         match.AddSetByNumber(i, reader.GetByteNull("w_set_" + i.ToString()), reader.GetByteNull("l_set_" + i.ToString()), reader.GetUint16Null("tb_set_" + i.ToString()));
                     }
+                    matchs.Add(match);
 
-                    _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
+                    if (Properties.Settings.Default.ComputeMatchesWhileLoading)
+                    {
+                        _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
+                    }
                 }
             }
 
             Match.SetBatchMode(false);
+
+            return matchs;
         }
 
         // Procède à l'importation du barème des points ATP.
         private void CreatePointsAtpScale()
         {
-            foreach (var level in Enum.GetValues(typeof(Level)))
+            foreach (object level in Enum.GetValues(typeof(Level)))
             {
                 string query = string.Format("select * from points where level_ID = {0}", (int)level);
-                using (var reader = SqlTools.ExecuteReader(query))
+                using (DataTableReader reader = SqlTools.ExecuteReader(query))
                 {
                     while (reader.Read())
                     {
@@ -270,8 +329,8 @@ namespace TheTennisProject
         // procède à l'importation des pays.
         private void CreateCountries()
         {
-            var sqlQuery = "select * from countries";
-            using (var reader = SqlTools.ExecuteReader(sqlQuery))
+            string sqlQuery = "select * from countries";
+            using (DataTableReader reader = SqlTools.ExecuteReader(sqlQuery))
             {
                 while (reader.Read())
                 {
@@ -321,25 +380,25 @@ namespace TheTennisProject
             SqlTools.ExecuteNonQuery("delete from edition_player_stats where edition_ID in (select ID from editions where year = @year)",
                 new SqlParam("@year", DbType.UInt32, year));
 
-            var sqlFields = new Dictionary<string, string>
+            Dictionary<string, string> sqlFields = new Dictionary<string, string>
             {
                 { "edition_ID", "@edition" },
                 { "player_ID", "@player" }
             };
-            var sqlParams = new List<SqlParam>
+            List<SqlParam> sqlParams = new List<SqlParam>
             {
                 new SqlParam("@edition", DbType.UInt32),
                 new SqlParam("@player", DbType.UInt64)
             };
-            var sqlParamValues = new Dictionary<string, object>
+            Dictionary<string, object> sqlParamValues = new Dictionary<string, object>
             {
                 { "@edition", null },
                 { "@player", null },
             };
-            foreach (var statTypeRaw in Enum.GetValues(typeof(StatType)))
+            foreach (object statTypeRaw in Enum.GetValues(typeof(StatType)))
             {
-                var statType = (StatType)statTypeRaw;
-                var dbType = DbType.UInt16;
+                StatType statType = (StatType)statTypeRaw;
+                DbType dbType = DbType.UInt16;
                 switch (statType)
                 {
                     case StatType.round:
@@ -357,9 +416,9 @@ namespace TheTennisProject
                 sqlParamValues.Add(string.Concat("@", statType), null);
             }
 
-            using (var sqlPrepared = new SqlTools.SqlPrepared(SqlTools.BuildInsertQuery("edition_player_stats", sqlFields), sqlParams.ToArray()))
+            using (SqlTools.SqlPrepared sqlPrepared = new SqlTools.SqlPrepared(SqlTools.BuildInsertQuery("edition_player_stats", sqlFields), sqlParams.ToArray()))
             {
-                var sbSql = new System.Text.StringBuilder();
+                System.Text.StringBuilder sbSql = new System.Text.StringBuilder();
                 sbSql.AppendLine("select distinct tmp.ID, tmp.pid ");
                 sbSql.AppendLine("from( ");
                 sbSql.AppendLine("  SELECT e.ID, m.winner_id as pid ");
@@ -373,21 +432,23 @@ namespace TheTennisProject
                 sbSql.AppendLine("  WHERE e.year = @year ");
                 sbSql.AppendLine(") as tmp");
 
-                var reader = SqlTools.ExecuteReader(sbSql.ToString(), new SqlParam("@year", DbType.UInt32, year));
-                while (reader.Read())
+                using (DataTableReader reader = SqlTools.ExecuteReader(sbSql.ToString(), new SqlParam("@year", DbType.UInt32, year)))
                 {
-                    var editionId = reader.GetUint32("ID");
-                    var player = BaseService.GetByID<Player>(reader.GetUint64("pid"));
-
-                    sqlParamValues["@edition"] = editionId;
-                    sqlParamValues["@player"] = player.ID;
-                    
-                    foreach (var statTypeRaw in Enum.GetValues(typeof(StatType)))
+                    while (reader.Read())
                     {
-                        sqlParamValues[string.Concat("@", statTypeRaw)] = player.ComputePlayerStatsForEdition(editionId, (StatType)statTypeRaw);
-                    }
+                        uint editionId = reader.GetUint32("ID");
+                        ulong playerId = reader.GetUint64("pid");
 
-                    sqlPrepared.Execute(sqlParamValues);
+                        sqlParamValues["@edition"] = editionId;
+                        sqlParamValues["@player"] = playerId;
+
+                        foreach (object statTypeRaw in Enum.GetValues(typeof(StatType)))
+                        {
+                            sqlParamValues[string.Concat("@", statTypeRaw)] = Player.ComputePlayerStatsForEdition(playerId, editionId, (StatType)statTypeRaw);
+                        }
+
+                        sqlPrepared.Execute(sqlParamValues);
+                    }
                 }
             }
         }
@@ -411,7 +472,7 @@ namespace TheTennisProject
             {
                 if (progressionPercentage < 0 || progressionPercentage > 100)
                 {
-                    throw new ArgumentException("Le pourcentage de progression spécifié est invalide.", "progressionPercentage");
+                    throw new ArgumentException("Le pourcentage de progression spécifié est invalide.", nameof(progressionPercentage));
                 }
 
                 ProgressionPercentage = progressionPercentage;

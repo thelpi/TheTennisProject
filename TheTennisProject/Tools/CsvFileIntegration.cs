@@ -83,7 +83,7 @@ namespace TheTennisProject
             
             for (int i = 1; i < dataRows.Count; i++)
             {
-                var kvRow = new Dictionary<string, string>();
+                Dictionary<string, string> kvRow = new Dictionary<string, string>();
                 for (int j = 0; j < dataRows[0].Count; j++)
                 {
                     kvRow.Add(dataRows[0][j].Trim(), dataRows[i][j].Trim());
@@ -99,7 +99,7 @@ namespace TheTennisProject
         /// </summary>
         public void IntegrateEditionOfTournaments()
         {
-            var insertEditionQuery = SqlTools.BuildInsertQuery("editions", new Dictionary<string, string>()
+            string insertEditionQuery = SqlTools.BuildInsertQuery("editions", new Dictionary<string, string>()
             {
                 { "tournament_ID", "@id" },
                 { "year", "@year" },
@@ -115,7 +115,7 @@ namespace TheTennisProject
             });
 
             List<string> uniqueTournamentList = new List<string>();
-            foreach (var match in _matchs)
+            foreach (Dictionary<string, string> match in _matchs)
             {
                 if (!uniqueTournamentList.Contains(match["tourney_id"]))
                 {
@@ -123,27 +123,29 @@ namespace TheTennisProject
 
                     string baseCode = match["tourney_id"].Substring(5);
 
-                    var reader = SqlTools.ExecuteReader("select * from tournaments where original_code in (@code2, @code1)",
-                        new SqlParam("@code1", DbType.String, baseCode), new SqlParam("@code2", DbType.String, GetGenericTournamentCode(baseCode)));
-                    if (reader.Read())
+                    using (DataTableReader reader = SqlTools.ExecuteReader("select * from tournaments where original_code in (@code2, @code1)",
+                        new SqlParam("@code1", DbType.String, baseCode), new SqlParam("@code2", DbType.String, GetGenericTournamentCode(baseCode))))
                     {
-                        // TODO : système de préparation de la requête SQL
-                        SqlTools.ExecuteNonQuery(insertEditionQuery,
-                            new SqlParam("@id", DbType.UInt32, reader.GetUint64("ID")),
-                            new SqlParam("@year", DbType.UInt32, _year),
-                            new SqlParam("@drawsize", DbType.UInt16, match["draw_size"]),
-                            new SqlParam("@date", DbType.DateTime, Tools.FormatCsvDateTime(match["tourney_date"]).ToString("yyyy-MM-dd")),
-                            new SqlParam("@surface", DbType.Byte, reader.GetByte("surface_ID")),
-                            new SqlParam("@slot", DbType.Byte, reader.GetByteNull("slot_order")),
-                            new SqlParam("@indoor", DbType.Boolean, reader.GetByte("is_indoor") == 1),
-                            new SqlParam("@level", DbType.Byte, reader.GetByte("level_ID")),
-                            new SqlParam("@substitute", DbType.UInt32, reader.GetUint64Null("substitute_ID")),
-                            new SqlParam("@name", DbType.String, reader.GetString("name")),
-                            new SqlParam("@city", DbType.String, reader.GetString("city")));
-                    }
-                    else
-                    {
-                        Tools.WriteLog(string.Format("Le tournoi {0} a été ignoré. C'est une erreur s'il ne s'agit pas d'un match de coupe Davis.", match["tourney_id"]));
+                        if (reader.Read())
+                        {
+                            // TODO : système de préparation de la requête SQL
+                            SqlTools.ExecuteNonQuery(insertEditionQuery,
+                                new SqlParam("@id", DbType.UInt32, reader.GetUint64("ID")),
+                                new SqlParam("@year", DbType.UInt32, _year),
+                                new SqlParam("@drawsize", DbType.UInt16, match["draw_size"]),
+                                new SqlParam("@date", DbType.DateTime, Tools.FormatCsvDateTime(match["tourney_date"]).ToString("yyyy-MM-dd")),
+                                new SqlParam("@surface", DbType.Byte, reader.GetByte("surface_ID")),
+                                new SqlParam("@slot", DbType.Byte, reader.GetByteNull("slot_order")),
+                                new SqlParam("@indoor", DbType.Boolean, reader.GetByte("is_indoor") == 1),
+                                new SqlParam("@level", DbType.Byte, reader.GetByte("level_ID")),
+                                new SqlParam("@substitute", DbType.UInt32, reader.GetUint64Null("substitute_ID")),
+                                new SqlParam("@name", DbType.String, reader.GetString("name")),
+                                new SqlParam("@city", DbType.String, reader.GetString("city")));
+                        }
+                        else
+                        {
+                            Tools.WriteLog(string.Format("Le tournoi {0} a été ignoré. C'est une erreur s'il ne s'agit pas d'un match de coupe Davis.", match["tourney_id"]));
+                        }
                     }
                 }
             }
@@ -155,7 +157,7 @@ namespace TheTennisProject
         /// </summary>
         public void IntegrateNewPlayers()
         {
-            var insertPlayerQuery = SqlTools.BuildInsertQuery("players", new Dictionary<string, string>
+            string insertPlayerQuery = SqlTools.BuildInsertQuery("players", new Dictionary<string, string>
             {
                 { "ID", "@id" },
                 { "name", "@name" },
@@ -165,10 +167,10 @@ namespace TheTennisProject
                 { "date_of_birth", "@dob" }
             });
 
-            var queryByPlayer = new Dictionary<int, KeyValuePair<string, IEnumerable<SqlParam>>>();
-            foreach (var match in _matchs)
+            Dictionary<int, KeyValuePair<string, IEnumerable<SqlParam>>> queryByPlayer = new Dictionary<int, KeyValuePair<string, IEnumerable<SqlParam>>>();
+            foreach (Dictionary<string, string> match in _matchs)
             {
-                for (var i = 1; i <= 2; i++)
+                for (int i = 1; i <= 2; i++)
                 {
                     string wOl = i == 1 ? "winner" : "loser";
                     if (SqlTools.ExecuteScalar("select count(*) from players where ID = @id and lower(replace(name, ' ', '')) = lower(replace(@name, ' ', ''))",
@@ -178,7 +180,7 @@ namespace TheTennisProject
                             null, new SqlParam("@id", DbType.UInt64, match[wOl + "_id"]));
                         if (string.IsNullOrWhiteSpace(sqlName))
                         {
-                            var dob = new DateTime(Tools.DEFAULT_YEAR, 1, 1);
+                            DateTime dob = new DateTime(Tools.DEFAULT_YEAR, 1, 1);
                             if (!string.IsNullOrWhiteSpace(match[wOl + "_age"]))
                             {
                                 // TODO : retravailler cette conversion
@@ -228,15 +230,17 @@ namespace TheTennisProject
         public void IntegrateMatchs()
         {
             Dictionary<string, byte> rounds = new Dictionary<string, byte>();
-            var reader = SqlTools.ExecuteReader("select * from rounds");
-            while (reader.Read())
+            using (DataTableReader reader = SqlTools.ExecuteReader("select * from rounds"))
             {
-                rounds.Add(SqlTools.GetString(reader, "original_code"), SqlTools.GetByte(reader, "ID"));
+                while (reader.Read())
+                {
+                    rounds.Add(SqlTools.GetString(reader, "original_code"), SqlTools.GetByte(reader, "ID"));
+                }
             }
 
             #region Préparation de la requête (très longue liste)
 
-            var insertMatchQuery = SqlTools.BuildInsertQuery("matches", new Dictionary<string, string>
+            string insertMatchQuery = SqlTools.BuildInsertQuery("matches", new Dictionary<string, string>
             {
                 { "original_key", "@original_key" },
                 { "edition_ID", "@edition_ID" },
@@ -294,8 +298,8 @@ namespace TheTennisProject
 
             #endregion
 
-            var editionsList = new Dictionary<string, uint>();
-            foreach (var match in _matchs)
+            Dictionary<string, uint> editionsList = new Dictionary<string, uint>();
+            foreach (Dictionary<string, string> match in _matchs)
             {
                 string baseCode = match["tourney_id"].Substring(5);
 
@@ -384,11 +388,12 @@ namespace TheTennisProject
                 }
                 catch (Exception ex)
                 {
-                    var errorMessage = string.Format("Echec de l'insertion du match {0}, l'erreur suivante est survenue : {1}", string.Concat(match["tourney_id"], "-", match["match_num"]), ex.Message);
+                    string errorMessage = string.Format("Echec de l'insertion du match {0}, l'erreur suivante est survenue : {1}", string.Concat(match["tourney_id"], "-", match["match_num"]), ex.Message);
                     Tools.WriteLog(errorMessage);
-                    var dialogResult = System.Windows.MessageBox.Show(errorMessage + "\n\nArrêter l'importation ?",
-                        "The Tennis Project - Error",
-                        System.Windows.MessageBoxButton.YesNo);
+                    System.Windows.MessageBoxResult dialogResult =
+                        System.Windows.MessageBox.Show(errorMessage + "\n\nArrêter l'importation ?",
+                            "The Tennis Project - Error",
+                            System.Windows.MessageBoxButton.YesNo);
                     if (dialogResult == System.Windows.MessageBoxResult.Yes)
                     {
                         break;
@@ -407,9 +412,9 @@ namespace TheTennisProject
         /// </summary>
         public void SetUnfinishedMatchsDatas()
         {
-            var sqlParam = new SqlParam("@yearlike", DbType.String, string.Concat(_year, "%"));
+            SqlParam sqlParam = new SqlParam("@yearlike", DbType.String, string.Concat(_year, "%"));
 
-            var queryBuilder = new System.Text.StringBuilder();
+            System.Text.StringBuilder queryBuilder = new System.Text.StringBuilder();
             queryBuilder.AppendLine("update matches ");
             queryBuilder.AppendLine("set walkover = 1 ");
             queryBuilder.AppendLine("where original_key like @yearlike ");
@@ -478,24 +483,24 @@ namespace TheTennisProject
         /// <returns>La valeur associée, <c>Null</c> si impossible à extraire.</returns>
         private string ExtractScore(string rawScore, int set, bool? winner)
         {
-            var sets = rawScore.Split(' ');
+            string[] sets = rawScore.Split(' ');
 
             if (sets.Length < set)
             {
                 return null;
             }
 
-            var setInfo = sets[set - 1];
-            var regularSetInfo = setInfo.Contains("(") ? setInfo.Substring(0, setInfo.IndexOf("(")) : setInfo;
-            var wSetInfo = regularSetInfo.Contains("-") ? regularSetInfo.Split('-')[0] : null;
-            var lSetInfo = regularSetInfo.Contains("-") ? regularSetInfo.Split('-')[1] : null;
+            string setInfo = sets[set - 1];
+            string regularSetInfo = setInfo.Contains("(") ? setInfo.Substring(0, setInfo.IndexOf("(")) : setInfo;
+            string wSetInfo = regularSetInfo.Contains("-") ? regularSetInfo.Split('-')[0] : null;
+            string lSetInfo = regularSetInfo.Contains("-") ? regularSetInfo.Split('-')[1] : null;
 
             if (winner.HasValue)
             {
                 return winner.Value ? wSetInfo : lSetInfo;
             }
 
-            var tbInfo = setInfo.Replace(regularSetInfo, string.Empty);
+            string tbInfo = setInfo.Replace(regularSetInfo, string.Empty);
             int tbInfoInt = -1;
             if (tbInfo.Length > 2)
             {

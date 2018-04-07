@@ -71,7 +71,7 @@ namespace TheTennisProject.Services
         /// <returns>Le barème associé aux paramètres fournis.</returns>
         public static ReadOnlyCollection<PointsAtpScale> GetLevelScale(Level level, Round? round)
         {
-            var tempScale = _pointsAtpSystems.Where(item => item.Level == level && (!round.HasValue || item.Round == round.Value)).ToList();
+            List<PointsAtpScale> tempScale = _pointsAtpSystems.Where(item => item.Level == level && (!round.HasValue || item.Round == round.Value)).ToList();
             if (!tempScale.Any())
             {
                 // HACK : à retirer dés que possible
@@ -96,7 +96,7 @@ namespace TheTennisProject.Services
                 return 0;
             }
 
-            var scale = GetLevelScale(match.Edition.TournamentLevel, match.Round)[0];
+            PointsAtpScale scale = GetLevelScale(match.Edition.TournamentLevel, match.Round)[0];
 
             if (match.Winner == player)
             {

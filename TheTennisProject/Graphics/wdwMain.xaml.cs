@@ -129,7 +129,7 @@ namespace TheTennisProject.Graphics
         // Se produit quand le bouton de recherche de joueur à partir de la zone de texte est activé.
         private void btnSearchPlayer_Click(object sender, RoutedEventArgs e)
         {
-            var currentPlayerSelected = cbbAllPlayers.ItemsSource.Cast<Player>().FirstOrDefault(item => item.Name.Trim().ToLower().Contains(txtSearchPlayer.Text.Trim().ToLower()));
+            Player currentPlayerSelected = cbbAllPlayers.ItemsSource.Cast<Player>().FirstOrDefault(item => item.Name.Trim().ToLower().Contains(txtSearchPlayer.Text.Trim().ToLower()));
             if (currentPlayerSelected != null)
             {
                 cbbAllPlayers.SelectedItem = currentPlayerSelected;
@@ -158,7 +158,8 @@ namespace TheTennisProject.Graphics
                 return;
             }
 
-            var allMatchPlayedOrdered = Match.GetPlayerMatches(selectedPlayer.ID).OrderByDescending(item => item.Edition.DateBegin).ThenByDescending(item => item.MatchNum);
+            IOrderedEnumerable<Match> allMatchPlayedOrdered =
+                Match.GetPlayerMatches(selectedPlayer.ID).OrderByDescending(item => item.Edition.DateBegin).ThenByDescending(item => item.MatchNum);
 
             #region Onglet général
 
@@ -172,7 +173,7 @@ namespace TheTennisProject.Graphics
             {
                 StringBuilder stringBuildNatHistory = new StringBuilder();
                 stringBuildNatHistory.AppendLine("Changements de nationalité sportive :");
-                foreach (var rowHisto in selectedPlayer.NationalitiesHistory)
+                foreach (KeyValuePair<string, DateTime> rowHisto in selectedPlayer.NationalitiesHistory)
                 {
                     stringBuildNatHistory.AppendLine(string.Format("{0} jusqu'au {1}", rowHisto.Key, rowHisto.Value.ToString("dd/MM/yyyy")));
                 }
@@ -207,9 +208,9 @@ namespace TheTennisProject.Graphics
 
             #region Onglet historique
 
-            var years = new List<string>();
+            List<string> years = new List<string>();
             years.Add("Tout");
-            for (var i = Settings.Default.OpenEraYearBegin; i <= DateTime.Now.Year; i++)
+            for (uint i = Settings.Default.OpenEraYearBegin; i <= DateTime.Now.Year; i++)
             {
                 if (allMatchPlayedOrdered.Any(item => (item.Round == Round.F || item.Round == Round.SF) && item.Edition.Year == i))
                 {
@@ -218,31 +219,31 @@ namespace TheTennisProject.Graphics
             }
             cbbHistoryYear.ItemsSource = years;
 
-            var surfaces = new Dictionary<int, string>();
+            Dictionary<int, string> surfaces = new Dictionary<int, string>();
             surfaces.Add(0, "Tout");
-            foreach (var value in Enum.GetValues(typeof(Surface)))
+            foreach (object value in Enum.GetValues(typeof(Surface)))
             {
-                var typedValue = (Surface)value;
+                Surface typedValue = (Surface)value;
                 surfaces.Add((int)typedValue, typedValue.GetTranslation());
             }
             cbbHistorySurface.ItemsSource = surfaces;
             cbbHistorySurface.DisplayMemberPath = "Value";
 
-            var levels = new Dictionary<int, string>();
+            Dictionary<int, string> levels = new Dictionary<int, string>();
             levels.Add(0, "Tout");
-            foreach (var value in Enum.GetValues(typeof(Level)))
+            foreach (object value in Enum.GetValues(typeof(Level)))
             {
-                var typedValue = (Level)value;
+                Level typedValue = (Level)value;
                 levels.Add((int)typedValue, typedValue.GetTranslation());
             }
             cbbHistoryLevel.ItemsSource = levels.OrderBy(item => item.Key);
             cbbHistoryLevel.DisplayMemberPath = "Value";
 
-            var rounds = new Dictionary<int, string>();
+            Dictionary<int, string> rounds = new Dictionary<int, string>();
             rounds.Add(0, "Tout");
-            foreach (var value in Enum.GetValues(typeof(Round)))
+            foreach (object value in Enum.GetValues(typeof(Round)))
             {
-                var typedValue = (Round)value;
+                Round typedValue = (Round)value;
                 rounds.Add((int)typedValue, typedValue.GetTranslation());
             }
             cbbHistoryRound.ItemsSource = rounds;
@@ -278,11 +279,11 @@ namespace TheTennisProject.Graphics
             // le joueur sélectionné est taggé
             lstHistoryResult.Tag = selectedPlayer;
 
-            var baseMatchesList = Match.GetPlayerMatches(selectedPlayer.ID);
+            IEnumerable<Match> baseMatchesList = Match.GetPlayerMatches(selectedPlayer.ID);
 
             // tansforme la liste de base (read-only) en colection éditable
-            var filteredMatchesList = new List<Match>();
-            foreach (var match in baseMatchesList)
+            List<Match> filteredMatchesList = new List<Match>();
+            foreach (Match match in baseMatchesList)
             {
                 filteredMatchesList.Add(match);
             }
@@ -296,7 +297,7 @@ namespace TheTennisProject.Graphics
             }
             if (cbbHistoryLevel.SelectedIndex >= 0)
             {
-                var levelValue = (KeyValuePair<int, string>)cbbHistoryLevel.SelectedItem;
+                KeyValuePair<int, string> levelValue = (KeyValuePair<int, string>)cbbHistoryLevel.SelectedItem;
                 if (levelValue.Key > 0)
                 {
                     filteredMatchesList = filteredMatchesList.Where(item => item.Edition.TournamentLevel == (Level)levelValue.Key).ToList();
@@ -304,7 +305,7 @@ namespace TheTennisProject.Graphics
             }
             if (cbbHistorySurface.SelectedIndex >= 0)
             {
-                var surfaceValue = (KeyValuePair<int, string>)cbbHistorySurface.SelectedItem;
+                KeyValuePair<int, string> surfaceValue = (KeyValuePair<int, string>)cbbHistorySurface.SelectedItem;
                 if (surfaceValue.Key > 0)
                 {
                     filteredMatchesList = filteredMatchesList.Where(item => item.Edition.TournamentSurface == (Surface)surfaceValue.Key).ToList();
@@ -312,7 +313,7 @@ namespace TheTennisProject.Graphics
             }
             if (cbbHistoryRound.SelectedIndex >= 0)
             {
-                var roundValue = (KeyValuePair<int, string>)cbbHistoryRound.SelectedItem;
+                KeyValuePair<int, string> roundValue = (KeyValuePair<int, string>)cbbHistoryRound.SelectedItem;
                 if (roundValue.Key > 0)
                 {
                     filteredMatchesList = filteredMatchesList.Where(item => item.Round == (Round)roundValue.Key).ToList();
@@ -333,10 +334,10 @@ namespace TheTennisProject.Graphics
                 return;
             }
 
-            var baseMatchesList = Match.GetPlayerMatches(selectedPlayer.ID);
+            IEnumerable<Match> baseMatchesList = Match.GetPlayerMatches(selectedPlayer.ID);
 
             // tansforme la liste de base (read-only) en colection éditable
-            var filteredMatchesList = new List<Match>(baseMatchesList);
+            List<Match> filteredMatchesList = new List<Match>(baseMatchesList);
 
             if (cbbStatsYear.SelectedIndex >= 0 && cbbStatsYear.SelectedItem.ToString() != "Tout")
             {
@@ -344,7 +345,7 @@ namespace TheTennisProject.Graphics
             }
             if (cbbStatsLevel.SelectedIndex >= 0)
             {
-                var levelValue = (KeyValuePair<int, string>)cbbStatsLevel.SelectedItem;
+                KeyValuePair<int, string> levelValue = (KeyValuePair<int, string>)cbbStatsLevel.SelectedItem;
                 if (levelValue.Key > 0)
                 {
                     filteredMatchesList = filteredMatchesList.Where(item => item.Edition.TournamentLevel == (Level)levelValue.Key).ToList();
@@ -352,7 +353,7 @@ namespace TheTennisProject.Graphics
             }
             if (cbbStatsSurface.SelectedIndex >= 0)
             {
-                var surfaceValue = (KeyValuePair<int, string>)cbbStatsSurface.SelectedItem;
+                KeyValuePair<int, string> surfaceValue = (KeyValuePair<int, string>)cbbStatsSurface.SelectedItem;
                 if (surfaceValue.Key > 0)
                 {
                     filteredMatchesList = filteredMatchesList.Where(item => item.Edition.TournamentSurface == (Surface)surfaceValue.Key).ToList();
@@ -360,7 +361,7 @@ namespace TheTennisProject.Graphics
             }
             if (cbbStatsRound.SelectedIndex >= 0)
             {
-                var roundValue = (KeyValuePair<int, string>)cbbStatsRound.SelectedItem;
+                KeyValuePair<int, string> roundValue = (KeyValuePair<int, string>)cbbStatsRound.SelectedItem;
                 if (roundValue.Key > 0)
                 {
                     filteredMatchesList = filteredMatchesList.Where(item => item.Round == (Round)roundValue.Key).ToList();
@@ -426,13 +427,13 @@ namespace TheTennisProject.Graphics
             LoadBackgroundDatas(
                 delegate(object sender, DoWorkEventArgs evt)
                 {
-                    var statsDictionnary = Enum.GetValues(typeof(StatType)).Cast<StatType>().ToDictionary(st => st, st => (uint)0);
+                    Dictionary<StatType, uint> statsDictionnary = Enum.GetValues(typeof(StatType)).Cast<StatType>().ToDictionary(st => st, st => (uint)0);
                     statsDictionnary.Remove(StatType.round);
 
-                    var playersRankList = new List<Bindings.PlayerAtpRanking>();
+                    List<Bindings.PlayerAtpRanking> playersRankList = new List<Bindings.PlayerAtpRanking>();
 
-                    var arguments = evt.Argument as object[];
-                    var editions = Edition.GetByPeriod(
+                    object[] arguments = evt.Argument as object[];
+                    List<Edition> editions = Edition.GetByPeriod(
                         (DateTime)arguments[0],
                         (DateTime)arguments[1],
                         arguments[3] as IEnumerable<Level>,
@@ -440,11 +441,16 @@ namespace TheTennisProject.Graphics
                         (bool)arguments[5]
                     );
 
-                    foreach (var edition in editions)
+                    foreach (Edition edition in editions)
                     {
-                        foreach (var stat in edition.Statistics)
+                        // TODO : peut être pas la meilleure solution.
+                        if (!edition.StatisticsAreCompute)
                         {
-                            var currentBinding = playersRankList.FirstOrDefault(prl => prl.InnerPlayer.ID == stat.Player.ID);
+                            SqlMapping.Instance.CreateEditionsStatistics(edition);
+                        }
+                        foreach (Edition.Stats stat in edition.Statistics)
+                        {
+                            Bindings.PlayerAtpRanking currentBinding = playersRankList.FirstOrDefault(prl => prl.InnerPlayer.ID == stat.Player.ID);
                             if (currentBinding == null)
                             {
                                 currentBinding = new Bindings.PlayerAtpRanking(stat.Player, statsDictionnary);
@@ -454,7 +460,7 @@ namespace TheTennisProject.Graphics
                             {
                                 if (stat.StatType == StatType.is_winner)
                                 {
-                                    var roundStateValue = edition.Statistics.First(s => s.Player.ID == stat.Player.ID && s.StatType == StatType.round);
+                                    Edition.Stats roundStateValue = edition.Statistics.First(s => s.Player.ID == stat.Player.ID && s.StatType == StatType.round);
                                     if (roundStateValue.Value == (uint)Round.F)
                                     {
                                         currentBinding.AggregateStatistic(stat.StatType, stat.Value);
@@ -547,9 +553,9 @@ namespace TheTennisProject.Graphics
         // se produit quand une entête de colonne est cliquée pour tri
         private void gdvAtpRanking_header_Click(object sender, RoutedEventArgs e)
         {
-            var fullList = lstAtpRanking.ItemsSource as List<Bindings.PlayerAtpRanking>;
+            List<Bindings.PlayerAtpRanking> fullList = lstAtpRanking.ItemsSource as List<Bindings.PlayerAtpRanking>;
 
-            var columnName = (sender as GridViewColumnHeader).Name.Replace("StatType_", string.Empty);
+            string columnName = (sender as GridViewColumnHeader).Name.Replace("StatType_", string.Empty);
             bool isDesc = false;
             if (_rankingStatsSortParameter.ContainsKey(columnName))
             {
@@ -557,9 +563,9 @@ namespace TheTennisProject.Graphics
                 _rankingStatsSortParameter.Remove(columnName);
             }
 
-            var temp = new Dictionary<string, bool>();
+            Dictionary<string, bool> temp = new Dictionary<string, bool>();
             temp.Add(columnName, isDesc);
-            foreach (var key in _rankingStatsSortParameter.Keys)
+            foreach (string key in _rankingStatsSortParameter.Keys)
             {
                 temp.Add(key, _rankingStatsSortParameter[key]);
             }
@@ -585,7 +591,7 @@ namespace TheTennisProject.Graphics
                 List<Edition> editions = Edition.GetByTournament(selectedTournament.ID);
                 foreach (Edition edition in editions)
                 {
-                    palmares.Add(new Bindings.TournamentPalmares(edition.Year, Match.GetByEdition(edition.ID)));
+                    palmares.Add(new Bindings.TournamentPalmares(edition.Year, Match.GetByEdition((uint)edition.ID)));
                 }
             }
 

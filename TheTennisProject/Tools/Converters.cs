@@ -123,9 +123,9 @@ namespace TheTennisProject
                 listViewControl = currentControl as System.Windows.Controls.ListView;
             }
 
-            var pWin = values[0] as Services.Player;
-            var pLos = values[1] as Services.Player;
-            var pMe = listViewControl.Tag as Services.Player;
+            Services.Player pWin = values[0] as Services.Player;
+            Services.Player pLos = values[1] as Services.Player;
+            Services.Player pMe = listViewControl.Tag as Services.Player;
 
             return pWin == pMe ? pLos.Name : pWin.Name;
         }
@@ -239,7 +239,7 @@ namespace TheTennisProject
         {
             if (value == null || value.GetType() != typeof(bool))
             {
-                throw new ArgumentException("L'argument est null ou d'un autre type que celui attendu.", "value");
+                throw new ArgumentException("L'argument est null ou d'un autre type que celui attendu.", nameof(value));
             }
 
             return ((bool)value) ? "Indoor" : string.Empty;

@@ -97,7 +97,7 @@ namespace TheTennisProject.Services
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                throw new ArgumentException("Le nom du tournoi ne doit pas être vide.", "name");
+                throw new ArgumentException("Le nom du tournoi ne doit pas être vide.", nameof(name));
             }
             name = name.Trim();
 

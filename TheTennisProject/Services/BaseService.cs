@@ -47,12 +47,11 @@ namespace TheTennisProject.Services
         /// <typeparam name="T">Le type de l'instance à cibler (un type enfant de <see cref="BaseService"/>).</typeparam>
         /// <param name="id">L'identifiant recherché.</param>
         /// <returns>L'instance associée, null si elle n'a pas pu être trouvée.</returns>
-        /// <exception cref="InvalidOperationException">Le type spécifié n'est pas enfant de <see cref="BaseService"/>.</exception>
-        public static T GetByID<T>(ulong id) where T : BaseService
+        protected static T GetByID<T>(ulong id) where T : BaseService
         {
             if (!_instances.ContainsKey(typeof(T)))
             {
-                throw new InvalidOperationException(string.Format("Le type spécifié n'est pas enfant de {0}.", typeof(BaseService).Name));
+                _instances.Add(typeof(T), new Dictionary<ulong, BaseService>());
             }
 
             if (!_instances[typeof(T)].ContainsKey(id))
@@ -68,12 +67,11 @@ namespace TheTennisProject.Services
         /// </summary>
         /// <typeparam name="T">Le type enfant à cibler.</typeparam>
         /// <returns>Une collection en lecture-seule de toutes les instances du type enfant ciblé.</returns>
-        /// <exception cref="InvalidOperationException">Le type spécifié n'est pas enfant de <see cref="BaseService"/>.</exception>
-        protected static ReadOnlyCollection<T> GetList<T>()
+        protected static ReadOnlyCollection<T> GetList<T>() where T : BaseService
         {
             if (!_instances.ContainsKey(typeof(T)))
             {
-                throw new InvalidOperationException(string.Format("Le type spécifié n'est pas enfant de {0}.", typeof(BaseService).Name));
+                _instances.Add(typeof(T), new Dictionary<ulong, BaseService>());
             }
 
             return _instances[typeof(T)].Select(item => item.Value).Cast<T>().ToList().AsReadOnly();

@@ -247,16 +247,16 @@ namespace TheTennisProject.Services
             ulong loserID, uint? loserSeed, string loserEntry, uint? loserRank, uint? loserRankPoints)
             : base(id)
         {
-            var edition = GetByID<Edition>(editionID);
+            Edition edition = GetByID<Edition>(editionID);
             if (edition == null)
             {
-                throw new ArgumentException("L'identifiant fourni est invalide.", "editionID");
+                throw new ArgumentException("L'identifiant fourni est invalide.", nameof(editionID));
             }
 
             // En mode batch, la cohérence de l'édition et du numéro de match n'est pas vérifiée.
             if (!_batchMode && GetByEditionAndMatchNum(editionID, matchNum) != null)
             {
-                throw new ArgumentException("Pour une édition, les numéros de matchs doivent être uniques.", "matchNum");
+                throw new ArgumentException("Pour une édition, les numéros de matchs doivent être uniques.", nameof(matchNum));
             }
 
             if (winnerID == loserID && winnerID != Player.UNKNOWN_PLAYER_ID)
@@ -264,17 +264,17 @@ namespace TheTennisProject.Services
                 throw new ArgumentException("Le vainqueur et le vaincu ne peuvent pas être identiques.");
             }
 
-            var winner = GetByID<Player>(winnerID);
-            var loser = GetByID<Player>(loserID);
+            Player winner = GetByID<Player>(winnerID);
+            Player loser = GetByID<Player>(loserID);
 
             if (winner == null)
             {
-                throw new ArgumentException("Le vainqueur n'est pas un joueur valide.", "winnerID");
+                throw new ArgumentException("Le vainqueur n'est pas un joueur valide.", nameof(winnerID));
             }
 
             if (loser == null)
             {
-                throw new ArgumentException("Le vaincu n'est pas un joueur valide.", "loserID");
+                throw new ArgumentException("Le vaincu n'est pas un joueur valide.", nameof(loserID));
             }
 
             Edition = edition;
@@ -313,7 +313,7 @@ namespace TheTennisProject.Services
         {
             if (setNumber < 1 || setNumber > 5 || (setNumber > this.BestOf && (wScore.HasValue || lScore.HasValue || tieBreak.HasValue)))
             {
-                throw new ArgumentException("Le numéro de set est invalide.", "setNumber");
+                throw new ArgumentException("Le numéro de set est invalide.", nameof(setNumber));
             }
 
             if (!wScore.HasValue || !lScore.HasValue)
@@ -322,7 +322,7 @@ namespace TheTennisProject.Services
             }
             else
             {
-                var setWinner = Winner;
+                Player setWinner = Winner;
                 if (wScore.Value < lScore.Value)
                     setWinner = Loser;
 
@@ -346,12 +346,12 @@ namespace TheTennisProject.Services
         {
             if (winnerStats == null)
             {
-                throw new ArgumentNullException("winnerStats");
+                throw new ArgumentNullException(nameof(winnerStats));
             }
 
             if (loserStats == null)
             {
-                throw new ArgumentNullException("loserStats");
+                throw new ArgumentNullException(nameof(loserStats));
             }
 
             try
@@ -368,7 +368,7 @@ namespace TheTennisProject.Services
             }
             catch (Exception innerException)
             {
-                throw new ArgumentException("Impossible de récupérer les valeurs attendues depuis le tableau. Voir le détail de l'exception.", "winnerStats", innerException);
+                throw new ArgumentException("Impossible de récupérer les valeurs attendues depuis le tableau. Voir le détail de l'exception.", nameof(winnerStats), innerException);
             }
 
             try
@@ -385,7 +385,7 @@ namespace TheTennisProject.Services
             }
             catch (Exception innerException)
             {
-                throw new ArgumentException("Impossible de récupérer les valeurs attendues depuis le tableau. Voir le détail de l'exception.", "loserStats", innerException);
+                throw new ArgumentException("Impossible de récupérer les valeurs attendues depuis le tableau. Voir le détail de l'exception.", nameof(loserStats), innerException);
             }
         }
 
@@ -395,9 +395,15 @@ namespace TheTennisProject.Services
         /// <param name="editionID">L'identifiant de l'édition à rechercher.</param>
         /// <param name="matchNum">Le numéro de match à rechercher.</param>
         /// <returns>Le match correspondant aux critères, null s'il n'a pas été trouvé.</returns>
-        public static Match GetByEditionAndMatchNum(ulong editionID, ushort matchNum)
+        public static Match GetByEditionAndMatchNum(uint editionID, ushort matchNum)
         {
-            return GetList<Match>().FirstOrDefault(item => item.MatchNum == matchNum && item.Edition.ID == editionID);
+            IEnumerable<Match> baseList = GetList<Match>().Where(_ => _.Edition.ID == editionID);
+            if (!baseList.Any())
+            {
+                baseList = SqlMapping.Instance.CreateMatches(editionID, null);
+            }
+
+            return baseList.FirstOrDefault(_ => _.MatchNum == matchNum);
         }
 
         /// <summary>
@@ -405,9 +411,15 @@ namespace TheTennisProject.Services
         /// </summary>
         /// <param name="editionID">Identifiant de l'édition.</param>
         /// <returns>Liste des matchs.</returns>
-        public static List<Match> GetByEdition(ulong editionID)
+        public static ReadOnlyCollection<Match> GetByEdition(uint editionID)
         {
-            return GetList<Match>().Where(_ => _.Edition.ID == editionID).ToList();
+            IEnumerable<Match> baseList = GetList<Match>().Where(_ => _.Edition.ID == editionID);
+            if (!baseList.Any())
+            {
+                baseList = SqlMapping.Instance.CreateMatches(editionID, null);
+            }
+
+            return baseList.ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -423,11 +435,12 @@ namespace TheTennisProject.Services
 
             if (!_batchMode)
             {
-                var matchNumAndEditionList = GetList<Match>()
-                                                .Select(item => new KeyValuePair<ushort, ulong>(item.MatchNum, item.Edition.ID))
-                                                .OrderBy(item => item.Key)
-                                                .ThenBy(item => item.Value)
-                                                .ToList();
+                List<KeyValuePair<ushort, ulong>> matchNumAndEditionList =
+                    GetList<Match>()
+                        .Select(item => new KeyValuePair<ushort, ulong>(item.MatchNum, item.Edition.ID))
+                        .OrderBy(item => item.Key)
+                        .ThenBy(item => item.Value)
+                        .ToList();
                 for (int i = 0; i < matchNumAndEditionList.Count - 1; i++)
                 {
                     if (matchNumAndEditionList[i + 1].Equals(matchNumAndEditionList[i]))
@@ -447,7 +460,13 @@ namespace TheTennisProject.Services
         /// <returns>Liste des matchs du joueur.</returns>
         public static ReadOnlyCollection<Match> GetPlayerMatches(ulong playerID)
         {
-            return GetList<Match>().Where(item => item.Winner.ID == playerID || item.Loser.ID == playerID).ToList().AsReadOnly();
+            IEnumerable<Match> baseList = GetList<Match>().Where(item => item.Winner.ID == playerID || item.Loser.ID == playerID);
+            if (!baseList.Any())
+            {
+                baseList = SqlMapping.Instance.CreateMatches(null, playerID);
+            }
+
+            return baseList.ToList().AsReadOnly();
         }
 
         /// <summary>
@@ -460,7 +479,7 @@ namespace TheTennisProject.Services
         {
             if (Winner != player && Loser != player)
             {
-                throw new ArgumentException("Le joueur spécifié n'a aucun rapport avec le match en cours.", "player");
+                throw new ArgumentException("Le joueur spécifié n'a aucun rapport avec le match en cours.", nameof(player));
             }
 
             // Le tour précédent suit une formule "+ 1" sur les valeurs d'énumération.
@@ -479,7 +498,7 @@ namespace TheTennisProject.Services
             }
 
             // Détermine si l'édition avait bien un tour associé à "previousOne". Si ce n'est pas le cas, l'exemption n'a pas eu lieu.
-            var editionHadPreviousRound = GetList<Match>().Any(item => item.Edition == Edition && item.Round == previousOne);
+            bool editionHadPreviousRound = GetList<Match>().Any(item => item.Edition == Edition && item.Round == previousOne);
             if (!editionHadPreviousRound)
             {
                 return false;

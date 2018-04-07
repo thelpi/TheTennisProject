@@ -89,24 +89,48 @@ namespace TheTennisProject.Properties {
             }
         }
         
-        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("https://www.google.fr/search?q={0}")]
         public string SearchImgUrlPattern {
             get {
                 return ((string)(this["SearchImgUrlPattern"]));
             }
-            set {
-                this["SearchImgUrlPattern"] = value;
-            }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("D:\\Ma programmation\\c#\\Projects\\TheTennisProject\\TheTennisProject\\tennis.log")]
         public string ErrorLogFilePath {
             get {
                 return ((string)(this["ErrorLogFilePath"]));
+            }
+            set {
+                this["ErrorLogFilePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ComputeStatisticsWhileLoading {
+            get {
+                return ((bool)(this["ComputeStatisticsWhileLoading"]));
+            }
+            set {
+                this["ComputeStatisticsWhileLoading"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ComputeMatchesWhileLoading {
+            get {
+                return ((bool)(this["ComputeMatchesWhileLoading"]));
+            }
+            set {
+                this["ComputeMatchesWhileLoading"] = value;
             }
         }
     }

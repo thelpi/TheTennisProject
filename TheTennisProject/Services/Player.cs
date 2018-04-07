@@ -100,18 +100,18 @@ namespace TheTennisProject.Services
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                throw new ArgumentException("Le nom ne peut pas être vide.", "name");
+                throw new ArgumentException("Le nom ne peut pas être vide.", nameof(name));
             }
 
             if (string.IsNullOrWhiteSpace(nationality))
             {
-                throw new ArgumentException("La nationalité ne peut pas être vide.", "nationality");
+                throw new ArgumentException("La nationalité ne peut pas être vide.", nameof(nationality));
             }
 
             nationality = nationality.Trim().ToUpper();
             if (nationality.Length != 3)
             {
-                throw new ArgumentException("La nationalité doit être un sigle de trois lettres.", "nationality");
+                throw new ArgumentException("La nationalité doit être un sigle de trois lettres.", nameof(nationality));
             }
 
             DateOfBirth = dateOfBirth;
@@ -122,9 +122,10 @@ namespace TheTennisProject.Services
         }
 
         /// <summary>
-        /// Ajoute une nationalité à l'historique du joueur.
+        /// Ajoute une nationalité à l'historique du joueur spécifié.
         /// </summary>
         /// <remarks>L'historique n'est pas destiné à stocker la nationalité actuelle du joueur.</remarks>
+        /// <param name="playerId">L'identifiant du joueur.</param>
         /// <param name="nationality">Nationalité (code ISO).</param>
         /// <param name="endDate">Date de fin.</param>
         /// <exception cref="ArgumentException">La nationalité ne peut pas etre vide.</exception>
@@ -132,35 +133,42 @@ namespace TheTennisProject.Services
         /// <exception cref="ArgumentException">La nationalité à mettre en historique ne doit pas être l'actuelle du joueur.</exception>
         /// <exception cref="ArgumentException">La nationalité spécifiée est déjà existante dans l'historique.</exception>
         /// <exception cref="ArgumentException">La date de fin spécifiée est déjà existante dans l'historique.</exception>
-        public void AddNationalitiesHistoryEntry(string nationality, DateTime endDate)
+        /// <exception cref="ArgumentException">Le joueur spécifié n'a pas été trouvé.</exception>
+        public static void AddNationalitiesHistoryEntry(ulong playerId, string nationality, DateTime endDate)
         {
             if (string.IsNullOrWhiteSpace(nationality))
             {
-                throw new ArgumentException("La nationalité ne peut pas etre vide.", "nationality");
+                throw new ArgumentException("La nationalité ne peut pas etre vide.", nameof(nationality));
             }
 
             nationality = nationality.Trim().ToUpper();
             if (nationality.Length < 3)
             {
-                throw new ArgumentException("La nationalité doit être un sigle de trois lettres.", "nationality");
+                throw new ArgumentException("La nationalité doit être un sigle de trois lettres.", nameof(nationality));
             }
 
-            if (nationality == Nationality)
+            Player p = GetByID<Player>(playerId);
+            if (p == null)
             {
-                throw new ArgumentException("La nationalité à mettre en historique ne doit pas être l'actuelle du joueur.", "nationality");
+                throw new ArgumentException("Le joueur spécifié n'a pas été trouvé.", nameof(playerId));
             }
 
-            if (_nationalitiesHistory.ContainsKey(nationality))
+            if (nationality == p.Nationality)
             {
-                throw new ArgumentException("La nationalité spécifiée est déjà existante dans l'historique.", "nationality");
+                throw new ArgumentException("La nationalité à mettre en historique ne doit pas être l'actuelle du joueur.", nameof(nationality));
             }
 
-            if (_nationalitiesHistory.Select(item => item.Value.Date).ToList().Contains(endDate.Date))
+            if (p._nationalitiesHistory.ContainsKey(nationality))
             {
-                throw new ArgumentException("La date de fin spécifiée est déjà existante dans l'historique.", "endDate");
+                throw new ArgumentException("La nationalité spécifiée est déjà existante dans l'historique.", nameof(nationality));
             }
 
-            _nationalitiesHistory.Add(nationality, endDate);
+            if (p._nationalitiesHistory.Select(item => item.Value.Date).ToList().Contains(endDate.Date))
+            {
+                throw new ArgumentException("La date de fin spécifiée est déjà existante dans l'historique.", nameof(endDate));
+            }
+
+            p._nationalitiesHistory.Add(nationality, endDate);
         }
 
         /// <summary>
@@ -191,32 +199,41 @@ namespace TheTennisProject.Services
             }
             else if (endDate <= beginDate)
             {
-                throw new ArgumentException("La date de début doit être antérieure à la date de fin.", "endDate");
+                throw new ArgumentException("La date de début doit être antérieure à la date de fin.", nameof(endDate));
             }
 
             uint points = 0;
 
             // TODO : fonctionner par semaine entière
-            var editions = GetList<Edition>().Where(e => e.DateBegin >= beginDate && e.DateBegin <= endDate).ToList();
-            foreach (var edition in editions)
+            List<Edition> editions = GetList<Edition>().Where(e => e.DateBegin >= beginDate && e.DateBegin <= endDate).ToList();
+            foreach (Edition edition in editions)
             {
-                points += ComputePlayerStatsForEdition(edition.ID, StatType.points);
+                points += ComputePlayerStatsForEdition(ID, edition.ID, StatType.points);
             }
 
             return points;
         }
 
         /// <summary>
-        /// Calcule les statistiques du joueur pour une édition de tournoi.
+        /// Calcule les statistiques d'un joueur spécifié pour une édition de tournoi.
         /// </summary>
+        /// <param name="playerId">L'identifiant du joueur.</param>
         /// <param name="editionId">Identifiant de l'édition.</param>
         /// <param name="stats">Statistique à calculer.</param>
         /// <returns>La statistique.</returns>
-        public uint ComputePlayerStatsForEdition(ulong editionId, StatType stats)
+        /// <exception cref="ArgumentException">Le joueur spécifié n'a pas été trouvé.</exception>
+        public static uint ComputePlayerStatsForEdition(ulong playerId, ulong editionId, StatType stats)
         {
-            var baseMatchesList = Match.GetPlayerMatches(ID)
-                .Where(item => item.Edition.ID == editionId)
-                .ToList();
+            Player p = GetByID<Player>(playerId);
+            if (p == null)
+            {
+                throw new ArgumentException("Le joueur spécifié n'a pas été trouvé.", nameof(playerId));
+            }
+
+            List<Match> baseMatchesList =
+                Match.GetPlayerMatches(p.ID)
+                    .Where(item => item.Edition.ID == editionId)
+                    .ToList();
 
             if (baseMatchesList.Count == 0)
             {
@@ -228,70 +245,73 @@ namespace TheTennisProject.Services
                 case StatType.round:
                     return (uint)baseMatchesList.OrderBy(m => m.Round.GetSortOrder()).First().Round;
                 case StatType.is_winner:
-                    return (uint)(baseMatchesList.OrderBy(m => m.Round.GetSortOrder()).First().Winner == this ? 1 : 0);
+                    return (uint)(baseMatchesList.OrderBy(m => m.Round.GetSortOrder()).First().Winner == p ? 1 : 0);
                 #region Calcul des points ATP
                 case StatType.points:
                     // matchs avec points cumulés
-                    var cumuledTypeMatches = baseMatchesList
-                        .Where(item =>
-                            PointsAtpScale.GetLevelScale(item.Edition.TournamentLevel, item.Round)[0].IsCumuled)
-                        .ToList();
-                    var p1 = cumuledTypeMatches.Sum(item => PointsAtpScale.GetPoints(item, this, item.PlayerWasExempt(this)));
+                    List<Match> cumuledTypeMatches =
+                        baseMatchesList
+                            .Where(item =>
+                                PointsAtpScale.GetLevelScale(item.Edition.TournamentLevel, item.Round)[0].IsCumuled)
+                            .ToList();
+                    long p1 = cumuledTypeMatches.Sum(item => PointsAtpScale.GetPoints(item, p, item.PlayerWasExempt(p)));
 
                     // matchs perdus dés l'entrée en lice
-                    var nonCumuledFirstTurnLose = baseMatchesList
-                        .Where(item =>
-                            !PointsAtpScale.GetLevelScale(item.Edition.TournamentLevel, item.Round)[0].IsCumuled &&
-                            item.Loser == this &&
-                            !baseMatchesList.Any(subItem => subItem.Edition == item.Edition && subItem.Round.RoundIsBefore(item.Round)))
-                        .ToList();
-                    var p2 = nonCumuledFirstTurnLose.Sum(item => PointsAtpScale.GetPoints(item, this, item.PlayerWasExempt(this)));
+                    List<Match> nonCumuledFirstTurnLose =
+                        baseMatchesList
+                            .Where(item =>
+                                !PointsAtpScale.GetLevelScale(item.Edition.TournamentLevel, item.Round)[0].IsCumuled &&
+                                item.Loser == p &&
+                                !baseMatchesList.Any(subItem => subItem.Edition == item.Edition && subItem.Round.RoundIsBefore(item.Round)))
+                            .ToList();
+                    long p2 = nonCumuledFirstTurnLose.Sum(item => PointsAtpScale.GetPoints(item, p, item.PlayerWasExempt(p)));
 
                     // matchs gagnés
-                    var nonCumuledBestWin = baseMatchesList
-                        .Where(item =>
-                            !PointsAtpScale.GetLevelScale(item.Edition.TournamentLevel, item.Round)[0].IsCumuled &&
-                            item.Winner == this &&
-                            !baseMatchesList.Any(subItem => subItem.Edition == item.Edition && item.Round.RoundIsBefore(subItem.Round) && subItem.Winner == this))
-                        .ToList();
-                    var p3 = nonCumuledBestWin.Sum(item => PointsAtpScale.GetPoints(item, this, item.PlayerWasExempt(this)));
+                    List<Match> nonCumuledBestWin =
+                        baseMatchesList
+                            .Where(item =>
+                                !PointsAtpScale.GetLevelScale(item.Edition.TournamentLevel, item.Round)[0].IsCumuled &&
+                                item.Winner == p &&
+                                !baseMatchesList.Any(subItem => subItem.Edition == item.Edition && item.Round.RoundIsBefore(subItem.Round) && subItem.Winner == p))
+                            .ToList();
+                    long p3 = nonCumuledBestWin.Sum(item => PointsAtpScale.GetPoints(item, p, item.PlayerWasExempt(p)));
 
                     return (uint)(p1 + p2 + p3);
                 #endregion
                 case StatType.match_win:
-                    return (uint)baseMatchesList.Count(m => m.Winner == this && !m.Walkover);
+                    return (uint)baseMatchesList.Count(m => m.Winner == p && !m.Walkover);
                 case StatType.match_lost:
-                    return (uint)baseMatchesList.Count(m => m.Loser == this && !m.Walkover);
+                    return (uint)baseMatchesList.Count(m => m.Loser == p && !m.Walkover);
                 case StatType.set_win:
-                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == this ? s.Value.Key == this : s.Value.Key != this)));
+                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == p ? s.Value.Key == p : s.Value.Key != p)));
                 case StatType.set_lost:
-                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == this ? s.Value.Key != this : s.Value.Key == this)));
+                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == p ? s.Value.Key != p : s.Value.Key == p)));
                 case StatType.game_win:
-                    return (uint)baseMatchesList.Sum(m => m.Sets.Sum(s => !s.HasValue ? 0 : ((m.Winner == this ? s.Value.Key == this : s.Value.Key != this) ? s.Value.Value.WScore : s.Value.Value.LScore)));
+                    return (uint)baseMatchesList.Sum(m => m.Sets.Sum(s => !s.HasValue ? 0 : ((m.Winner == p ? s.Value.Key == p : s.Value.Key != p) ? s.Value.Value.WScore : s.Value.Value.LScore)));
                 case StatType.game_lost:
-                    return (uint)baseMatchesList.Sum(m => m.Sets.Sum(s => !s.HasValue ? 0 : ((m.Winner == this ? s.Value.Key != this : s.Value.Key == this) ? s.Value.Value.WScore : s.Value.Value.LScore)));
+                    return (uint)baseMatchesList.Sum(m => m.Sets.Sum(s => !s.HasValue ? 0 : ((m.Winner == p ? s.Value.Key != p : s.Value.Key == p) ? s.Value.Value.WScore : s.Value.Value.LScore)));
                 case StatType.tb_win:
-                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == this ? s.Value.Key == this : s.Value.Key != this) && s.Value.Value.IsTieBreak));
+                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == p ? s.Value.Key == p : s.Value.Key != p) && s.Value.Value.IsTieBreak));
                 case StatType.tb_lost:
-                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == this ? s.Value.Key != this : s.Value.Key == this) && s.Value.Value.IsTieBreak));
+                    return (uint)baseMatchesList.Sum(m => m.Sets.Count(s => s.HasValue && (m.Winner == p ? s.Value.Key != p : s.Value.Key == p) && s.Value.Value.IsTieBreak));
                 case StatType.ace:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCountAce ?? 0 : m.LoserCountAce ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCountAce ?? 0 : m.LoserCountAce ?? 0));
                 case StatType.d_f:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCountDbFault ?? 0 : m.LoserCountDbFault ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCountDbFault ?? 0 : m.LoserCountDbFault ?? 0));
                 case StatType.sv_pt:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCountServePt ?? 0 : m.LoserCountServePt ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCountServePt ?? 0 : m.LoserCountServePt ?? 0));
                 case StatType.first_in:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCount1stIn ?? 0 : m.LoserCount1stIn ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCount1stIn ?? 0 : m.LoserCount1stIn ?? 0));
                 case StatType.first_won:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCount1stWon ?? 0 : m.LoserCount1stWon ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCount1stWon ?? 0 : m.LoserCount1stWon ?? 0));
                 case StatType.second_won:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCount2ndWon ?? 0 : m.LoserCount2ndWon ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCount2ndWon ?? 0 : m.LoserCount2ndWon ?? 0));
                 case StatType.sv_gms:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCountServeGames ?? 0 : m.LoserCountServeGames ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCountServeGames ?? 0 : m.LoserCountServeGames ?? 0));
                 case StatType.bp_saved:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCountBreakPtSaved ?? 0 : m.LoserCountBreakPtSaved ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCountBreakPtSaved ?? 0 : m.LoserCountBreakPtSaved ?? 0));
                 case StatType.bp_faced:
-                    return (uint)(baseMatchesList.Sum(m => m.Winner == this ? m.WinnerCountBreakPtFaced ?? 0 : m.LoserCountBreakPtFaced ?? 0));
+                    return (uint)(baseMatchesList.Sum(m => m.Winner == p ? m.WinnerCountBreakPtFaced ?? 0 : m.LoserCountBreakPtFaced ?? 0));
             }
 
             return 0;

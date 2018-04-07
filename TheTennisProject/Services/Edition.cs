@@ -35,6 +35,10 @@ namespace TheTennisProject.Services
         /// Statistiques relatives à tous les joueurs ayant participés au tournoi.
         /// </summary>
         public ReadOnlyCollection<Stats> Statistics { get { return _stats.AsReadOnly(); } }
+        /// <summary>
+        /// Indicates if statistics are loaded for this edition.
+        /// </summary>
+        public bool StatisticsAreCompute { get; private set; }
 
         #region Données historiques du tournoi associé
 
@@ -87,10 +91,10 @@ namespace TheTennisProject.Services
                 throw new ArgumentException("Une édition du tournoi pour la même année existe déjà.");
             }
 
-            var tournament = GetByID<Tournament>(tournamentId);
+            Tournament tournament = GetByID<Tournament>(tournamentId);
             if (tournament == null)
             {
-                throw new ArgumentException("Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.", "tournamentId");
+                throw new ArgumentException("Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.", nameof(tournamentId));
             }
 
             Tournament = tournament;
@@ -139,6 +143,7 @@ namespace TheTennisProject.Services
         public void AddPlayerStatistics(ulong playerId, StatType statType, uint value)
         {
             _stats.Add(new Stats(playerId, statType, value));
+            StatisticsAreCompute = true;
         }
 
         /// <summary>

@@ -90,7 +90,7 @@ namespace TheTennisProject.Graphics.Bindings
 
             IOrderedEnumerable<PlayerAtpRanking> orderedList = originalList.OrderBy(p => p.InnerPlayer.Name);
             bool firstSort = true;
-            foreach (var propName in sortParameter.Keys)
+            foreach (string propName in sortParameter.Keys)
             {
                 if (propName == "Name")
                 {
@@ -158,7 +158,7 @@ namespace TheTennisProject.Graphics.Bindings
             originalList = orderedList.ToList();
 
             // calcule le rang
-            foreach (var element in originalList)
+            foreach (PlayerAtpRanking element in originalList)
             {
                 element.Ranking = (ushort)(originalList.IndexOf(element) + 1);
             }

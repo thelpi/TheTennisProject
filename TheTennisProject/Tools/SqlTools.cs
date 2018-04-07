@@ -29,7 +29,7 @@ namespace TheTennisProject
         public static DataTableReader ExecuteReader(string query, params SqlParam[] parameters)
         {
             if (string.IsNullOrWhiteSpace(query))
-                throw new ArgumentException("La requête ne peut pas être vide ou null.", "query");
+                throw new ArgumentException("La requête ne peut pas être vide ou null.", nameof(query));
 
             DataSet set = new System.Data.DataSet();
 
@@ -60,7 +60,7 @@ namespace TheTennisProject
         public static int ExecuteNonQuery(string query, params SqlParam[] parameters)
         {
             if (string.IsNullOrWhiteSpace(query))
-                throw new ArgumentException("La requête ne peut pas être vide ou null.", "query");
+                throw new ArgumentException("La requête ne peut pas être vide ou null.", nameof(query));
 
             int results = -1;
 
@@ -91,7 +91,7 @@ namespace TheTennisProject
         public static T ExecuteScalar<T>(string query, T ifDbNull, params SqlParam[] parameters)
         {
             if (string.IsNullOrWhiteSpace(query))
-                throw new ArgumentException("La requête ne peut pas être vide ou null.", "query");
+                throw new ArgumentException("La requête ne peut pas être vide ou null.", nameof(query));
 
             object result;
             using (MySqlConnection connection = new MySqlConnection(SQL_CONNECTION_STRING))
@@ -124,7 +124,7 @@ namespace TheTennisProject
         public static uint GetUint32(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.ToUInt32(reader[columnName]);
         }
 
@@ -138,7 +138,7 @@ namespace TheTennisProject
         public static uint? GetUint32Null(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? (uint?)null : Convert.ToUInt32(reader[columnName]);
         }
 
@@ -152,7 +152,7 @@ namespace TheTennisProject
         public static ulong GetUint64(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.ToUInt64(reader[columnName]);
         }
 
@@ -166,7 +166,7 @@ namespace TheTennisProject
         public static ulong? GetUint64Null(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? (ulong?)null : Convert.ToUInt64(reader[columnName]);
         }
 
@@ -180,7 +180,7 @@ namespace TheTennisProject
         public static ushort GetUint16(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.ToUInt16(reader[columnName]);
         }
 
@@ -194,7 +194,7 @@ namespace TheTennisProject
         public static ushort? GetUint16Null(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? (ushort?)null : Convert.ToUInt16(reader[columnName]);
         }
 
@@ -208,7 +208,7 @@ namespace TheTennisProject
         public static byte GetByte(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.ToByte(reader[columnName]);
         }
 
@@ -222,7 +222,7 @@ namespace TheTennisProject
         public static byte? GetByteNull(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? (byte?)null : Convert.ToByte(reader[columnName]);
         }
 
@@ -236,7 +236,7 @@ namespace TheTennisProject
         public static DateTime GetDateTime(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.ToDateTime(reader[columnName]);
         }
 
@@ -250,7 +250,7 @@ namespace TheTennisProject
         public static DateTime? GetDateTimeNull(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? (DateTime?)null : Convert.ToDateTime(reader[columnName]);
         }
 
@@ -264,7 +264,7 @@ namespace TheTennisProject
         public static bool GetBoolean(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.ToBoolean(reader[columnName]);
         }
 
@@ -278,7 +278,7 @@ namespace TheTennisProject
         public static bool? GetBooleanNull(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? (bool?)null : Convert.ToBoolean(reader[columnName]);
         }
 
@@ -292,7 +292,7 @@ namespace TheTennisProject
         public static string GetString(this DataTableReader reader, string columnName)
         {
             if (!reader.ColumnExists(columnName))
-                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", "columnName");
+                throw new ArgumentException("La colonne spécifiée n'existe pas dans le jeu de données.", nameof(columnName));
             return Convert.IsDBNull(reader[columnName]) ? null : reader[columnName].ToString();
         }
 
@@ -309,7 +309,7 @@ namespace TheTennisProject
         public static IDictionary<string, T> ToDynamicDictionnary<T>(this DataTableReader reader, bool dbNullToDefault = false)
         {
             // Si T est nullable, récupère le type sous-jacent car c'est lui qui sera récupéré au DBType
-            var typeOfT = typeof(T);
+            Type typeOfT = typeof(T);
             if (typeOfT.IsGenericType && typeOfT.GetGenericTypeDefinition() == typeof(Nullable<>))
                 typeOfT = Nullable.GetUnderlyingType(typeOfT);
 
@@ -361,7 +361,7 @@ namespace TheTennisProject
         {
             if (command != null && parameters != null)
             {
-                foreach (var p in parameters)
+                foreach (SqlParam p in parameters)
                 {
                     command.Parameters.Add(p.ToMySqlParameter());
                 }
@@ -399,7 +399,7 @@ namespace TheTennisProject
             {
                 if (string.IsNullOrWhiteSpace(query))
                 {
-                    throw new ArgumentException("La requête ne peut pas être vide ou null.", "query");
+                    throw new ArgumentException("La requête ne peut pas être vide ou null.", nameof(query));
                 }
 
                 _connection = new MySqlConnection(SQL_CONNECTION_STRING);
@@ -427,7 +427,7 @@ namespace TheTennisProject
 
                 if (_command.Parameters != null && paramsValues != null)
                 {
-                    foreach (var param in paramsValues.Keys)
+                    foreach (string param in paramsValues.Keys)
                     {
                         _command.Parameters[param].Value = paramsValues[param] ?? DBNull.Value;
                     }
@@ -495,7 +495,7 @@ namespace TheTennisProject
         {
             if (string.IsNullOrWhiteSpace(name))
             {
-                throw new ArgumentNullException("name");
+                throw new ArgumentNullException(nameof(name));
             }
 
             name = name.Trim();
