@@ -1,0 +1,625 @@
+﻿<Window x:Class="TheTennisProject.Graphics.wdwMain"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:TheTennisProject"
+        xmlns:localSvc="clr-namespace:TheTennisProject.Services"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Background="Gainsboro" Title="Fenêtre principale"
+        MinHeight="480" MinWidth="720">
+    <Window.Resources>
+        <!-- converters -->
+        <local:WinnerToColourConverter x:Key="winnerColourConverter" />
+        <local:OpponentNameConverter x:Key="opponentNameConverter" />
+        <local:LevelTranslationConverter x:Key="levelTranslationConverter" />
+        <local:SurfaceTranslationConverter x:Key="surfaceTranslationConverter" />
+        <local:IndoorTextConverter x:Key="indoorTextConverter" />
+        <!-- data providers -->
+        <ObjectDataProvider MethodName="GetValues" ObjectType="{x:Type sys:Enum}" x:Key="surfaceEnum">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="localSvc:Surface" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <ObjectDataProvider MethodName="GetValues" ObjectType="{x:Type sys:Enum}" x:Key="levelEnum">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="localSvc:Level" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+        <!-- Ce style permt d'appliquer une couleur (vert / rouge) sur les cellules d'une ligne d'historique, suivant que le joueur lié soit vainqueur ou vaincu. -->
+        <Style TargetType="Label" x:Key="lblStyleHistoryView">
+            <Setter Property="Foreground">
+                <Setter.Value>
+                    <MultiBinding Converter="{StaticResource winnerColourConverter}">
+                        <Binding Path="Winner"/>
+                        <Binding RelativeSource="{RelativeSource Self}"/>
+                    </MultiBinding>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <DockPanel Margin="5">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Name="stpLoadSqlMapping">
+            <ProgressBar DockPanel.Dock="Bottom" Height="25" Width="150" Name="pgbLoadSqlMapping" Minimum="0" Maximum="100" Value="0" />
+            <Label Height="25" VerticalContentAlignment="Center" Margin="5, 0, 0, 0" Name="lblLoadSqlMapping" />
+        </StackPanel>
+        <TabControl IsEnabled="False" Name="tctMain" DockPanel.Dock="Top">
+            <TabItem Header="Fiche joueur">
+                <DockPanel>
+                    <GroupBox Header="Recherche d'un joueur" DockPanel.Dock="Top" Padding="5">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Width="200" Height="25" Text="Recherche..." KeyUp="TextBox_KeyUp" Name="txtSearchPlayer" MouseEnter="txtSearchPlayer_MouseEnter" />
+                            <Button ToolTip="Rechercher le joueur" Height="25" Width="25" Name="btnSearchPlayer" Margin="5, 0, 0, 0" Click="btnSearchPlayer_Click">
+                                <Image Source="../Resources/Icons/viewmag.png" Height="22" Width="22" />
+                            </Button>
+                            <ComboBox Name="cbbAllPlayers" Height="25" Width="200" Margin="5, 0, 0, 0" SelectionChanged="cbbAllPlayers_SelectionChanged"  />
+                        </StackPanel>
+                    </GroupBox>
+                    <DockPanel DockPanel.Dock="Bottom">
+                        <TabControl TabStripPlacement="Left">
+                            <TabItem Height="50" Header="Général">
+                                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="180" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="30" />
+                                        <RowDefinition Height="30" />
+                                    </Grid.RowDefinitions>
+                                    <Label Grid.Row="0" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                        Nom :
+                                    </Label>
+                                    <Label Grid.Row="1" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                        Date de naissance :
+                                    </Label>
+                                    <Label Grid.Row="2" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                        Nationalité :
+                                    </Label>
+                                    <Label Grid.Row="3" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                        Latéralité :
+                                    </Label>
+                                    <Label Grid.Row="4" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                        Taille :
+                                    </Label>
+                                    <Label Grid.Row="5" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                        Dernière activité :
+                                    </Label>
+                                    <Label Grid.Row="0" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerNam" />
+                                    <Label Grid.Row="1" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerDob" />
+                                    <DockPanel Grid.Row="2" Grid.Column="1">
+                                        <Image Height="22" Width="22" DockPanel.Dock="Right" Name="imgToolTipNatHistory" Source="../Resources/Icons/help.png" />
+                                        <Label DockPanel.Dock="Left" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerNat" />
+                                    </DockPanel>
+                                    <Label Grid.Row="3" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerLat" />
+                                    <Label Grid.Row="4" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerHei" />
+                                    <Label Grid.Row="5" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerAct" />
+                                    <Image Grid.Row="0" Grid.Column="2" Grid.RowSpan="6" Margin="5, 0, 0, 0"  Name="imgPlayer" />
+                                </Grid>
+                            </TabItem>
+                            <TabItem Height="50" Header="Historique">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top" Height="30" Orientation="Horizontal">
+                                        <Label Content="Année :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="50" Name="cbbHistoryYear" SelectionChanged="cbbHistoryAny_SelectionChanged" Margin="5, 0, 0, 0"  />
+                                        <Label Content="Niveau :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="125" Name="cbbHistoryLevel" SelectionChanged="cbbHistoryAny_SelectionChanged" Margin="5, 0, 0, 0" />
+                                        <Label Content="Surface :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="75" Name="cbbHistorySurface" SelectionChanged="cbbHistoryAny_SelectionChanged" Margin="5, 0, 0, 0" />
+                                        <Label Content="Tour :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="100" Name="cbbHistoryRound" SelectionChanged="cbbHistoryAny_SelectionChanged" Margin="5, 0, 0, 0" />
+                                    </StackPanel>
+                                    <ListView Name="lstHistoryResult" DockPanel.Dock="Bottom" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True">
+                                        <ListView.View>
+                                            <GridView AllowsColumnReorder="True">
+                                                <GridViewColumn Header="Année">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Content="{Binding Path=Edition.Year}"  Style="{StaticResource lblStyleHistoryView}" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="Tournoi">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Content="{Binding Path=Edition.Tournament.Name}" Style="{StaticResource lblStyleHistoryView}" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="Type">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Content="{Binding Path=Edition.TournamentLevel, Converter={StaticResource levelTranslationConverter}}" Style="{StaticResource lblStyleHistoryView}" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="Surface">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Content="{Binding Path=Edition.TournamentSurface, Converter={StaticResource surfaceTranslationConverter}}" Style="{StaticResource lblStyleHistoryView}" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="Indoor">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Content="{Binding Path=Edition.TournamentIsIndoor, Converter={StaticResource indoorTextConverter}}" Style="{StaticResource lblStyleHistoryView}" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="Tour">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Content="{Binding Path=Round}" Style="{StaticResource lblStyleHistoryView}" />
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                                <GridViewColumn Header="Adversaire">
+                                                    <GridViewColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Label Style="{StaticResource lblStyleHistoryView}">
+                                                                <Label.Content>
+                                                                    <MultiBinding Converter="{StaticResource opponentNameConverter}">
+                                                                        <Binding Path="Winner"/>
+                                                                        <Binding Path="Loser"/>
+                                                                        <Binding RelativeSource="{RelativeSource Self}"/>
+                                                                    </MultiBinding>
+                                                                </Label.Content>
+                                                            </Label>
+                                                        </DataTemplate>
+                                                    </GridViewColumn.CellTemplate>
+                                                </GridViewColumn>
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
+                                </DockPanel>
+                            </TabItem>
+                            <TabItem Height="50" Header="ATP">
+
+                            </TabItem>
+                            <TabItem Height="50" Header="Stats">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                                        <Label Content="Année :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="50" Name="cbbStatsYear" SelectionChanged="cbbStatsAny_SelectionChanged"  Margin="5, 0, 0, 0"  />
+                                        <Label Content="Niveau :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="125" Name="cbbStatsLevel" SelectionChanged="cbbStatsAny_SelectionChanged"  Margin="5, 0, 0, 0" />
+                                        <Label Content="Surface :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="75" Name="cbbStatsSurface" SelectionChanged="cbbStatsAny_SelectionChanged"  Margin="5, 0, 0, 0" />
+                                        <Label Content="Tour :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                                        <ComboBox Height="25" Width="100" Name="cbbStatsRound" SelectionChanged="cbbStatsAny_SelectionChanged"  Margin="5, 0, 0, 0" />
+                                    </StackPanel>
+                                    <Grid DockPanel.Dock="Bottom" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="150" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="30" />
+                                            <RowDefinition Height="30" />
+                                            <RowDefinition Height="30" />
+                                            <RowDefinition Height="30" />
+                                            <RowDefinition Height="30" />
+                                            <RowDefinition Height="30" />
+                                            <RowDefinition Height="30" />
+                                        </Grid.RowDefinitions>
+                                        <Label Grid.Row="0" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Premier match :
+                                        </Label>
+                                        <Label Grid.Row="0" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Dernier match :
+                                        </Label>
+                                        <Label Grid.Row="1" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nb. de matchs :
+                                        </Label>
+                                        <Label Grid.Row="1" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nb. de victoires (%) :
+                                        </Label>
+                                        <Label Grid.Row="2" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nb. de tournois :
+                                        </Label>
+                                        <Label Grid.Row="2" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nb. de titres (%) :
+                                        </Label>
+                                        <Label Grid.Row="3" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nb. d'aces (%) :
+                                        </Label>
+                                        <Label Grid.Row="3" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nb. de db-fautes (%) :
+                                        </Label>
+                                        <Label Grid.Row="4" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Temps de jeu (%) :
+                                        </Label>
+                                        <Label Grid.Row="4" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Nombre de jeux (%) :
+                                        </Label>
+                                        <Label Grid.Row="5" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Série de victoires :
+                                        </Label>
+                                        <Label Grid.Row="5" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Série de défaites :
+                                        </Label>
+                                        <Label Grid.Row="6" Grid.Column="0" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Match le + court :
+                                        </Label>
+                                        <Label Grid.Row="6" Grid.Column="2" HorizontalContentAlignment="Right" Height="25" Background="Gainsboro">
+                                            Match le + long :
+                                        </Label>
+                                        <Label Grid.Row="0" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsFirstMatch" />
+                                        <Label Grid.Row="1" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountMatch" />
+                                        <Label Grid.Row="2" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountEdition" />
+                                        <Label Grid.Row="3" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountAce" />
+                                        <Label Grid.Row="4" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsTimeSpent" />
+                                        <Label Grid.Row="5" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsWinRun" />
+                                        <Label Grid.Row="6" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblStatsShortMatch" />
+                                        <Label Grid.Row="0" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsLastMatch" />
+                                        <Label Grid.Row="1" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountWin" />
+                                        <Label Grid.Row="2" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountTitle" />
+                                        <Label Grid.Row="3" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountDF" />
+                                        <Label Grid.Row="4" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsCountGame" />
+                                        <Label Grid.Row="5" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsLoseRun" />
+                                        <Label Grid.Row="6" Grid.Column="3" HorizontalContentAlignment="Left" Height="25" Name="lblStatsLongMatch" />
+                                    </Grid>
+                                </DockPanel>
+                            </TabItem>
+                        </TabControl>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Tableau tournoi">
+
+            </TabItem>
+            <TabItem Header="Palmarès tournoi">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0, 0, 0, 5">
+                        <Label Content="Tournoi :" Height="25" Width="75" Margin="5, 0, 0, 0" HorizontalContentAlignment="Right" />
+                        <ComboBox Height="25" Width="175" Name="cbbPalmaresTournament" SelectionChanged="cbbPalmaresTournament_SelectionChanged" Margin="5, 0, 0, 0" />
+                    </StackPanel>
+                    <ListView DockPanel.Dock="Bottom" Name="lstPalmarestDetails" AlternationCount="2"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True">
+                        <ListView.Resources>
+                            <Style TargetType="ListViewItem">
+                                <Style.Triggers>
+                                    <Trigger Property="ItemsControl.AlternationIndex"  Value="0">
+                                        <Setter Property="Background" Value="White" />
+                                    </Trigger>
+                                    <Trigger Property="ItemsControl.AlternationIndex"  Value="1">
+                                        <Setter Property="Background" Value="LightGray" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListView.Resources>
+                        <ListView.View>
+                            <GridView AllowsColumnReorder="False">
+                                <GridViewColumn Header="Année">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Year}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Vainqueur">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Winner}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Finaliste">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=Finalist}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Demi-finaliste">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=SemiFinalist1}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Demi-finaliste">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Label Content="{Binding Path=SemiFinalist2}" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="Classement ATP">
+                <DockPanel>
+                    <Expander Header="Filtres" DockPanel.Dock="Top" Padding="5">
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel VerticalAlignment="Center" Orientation="Vertical">
+                                <StackPanel Margin="0, 5, 0, 0" Orientation="Horizontal">
+                                    <Label Width="50" VerticalAlignment="Center" Content="Début :" />
+                                    <DatePicker Height="25" SelectedDateFormat="Short" SelectedDate="01/01/2016" DisplayDateStart="01/01/1900" DisplayDateEnd="01/01/2100" FirstDayOfWeek="Monday" Name="dtpAtpRankingDateBegin" />
+                                </StackPanel>
+                                <StackPanel Margin="0, 5, 0, 0" Orientation="Horizontal">
+                                    <Label Width="50" VerticalAlignment="Center" Content="Fin :" />
+                                    <DatePicker Height="25" SelectedDateFormat="Short" SelectedDate="12/31/2016" DisplayDateStart="01/01/1900" DisplayDateEnd="01/01/2100" FirstDayOfWeek="Monday" Name="dtpAtpRankingDateEnd" />
+                                </StackPanel>
+                                <Button Margin="0, 48, 0, 0" Content="Filtrer" Name="btnFilterAction" Click="btnFilterAction_Click" />
+                            </StackPanel>
+                            <GroupBox VerticalAlignment="Center" Margin="5, 0, 0, 0" Header="Joueur">
+                                <StackPanel VerticalAlignment="Center" Orientation="Vertical">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Label Width="50" VerticalAlignment="Center" Content="Nom :" />
+                                        <TextBox Name="txtPlayerName" Width="150" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0, 5, 0, 0" Orientation="Horizontal">
+                                        <Label Width="50" VerticalAlignment="Center" Content="Nat. :" />
+                                        <ComboBox Name="cbbNationalityFilter" Width="150" ItemsSource="{Binding Source={x:Static localSvc:Country.Countries}}" DisplayMemberPath="NameFr" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox VerticalAlignment="Center" Margin="5, 0, 0, 0" Header="Surface">
+                                <StackPanel Margin="2" Orientation="Vertical">
+                                    <ListBox Width="100" SelectionMode="Multiple" VerticalAlignment="Center" Name="lsbelectSurface" ItemsSource="{Binding Source={StaticResource surfaceEnum}}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Converter={StaticResource surfaceTranslationConverter}}"/>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <CheckBox Margin="0, 5, 0, 0" Content="Indoor" VerticalAlignment="Center" Name="chkIsIndoor" />
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox VerticalAlignment="Center" Margin="5, 0, 0, 0" Header="Type de tournoi">
+                                <ListBox Margin="2" SelectionMode="Multiple" Name="lsbSelectLevel" ItemsSource="{Binding Source={StaticResource levelEnum}}" Height="105">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Converter={StaticResource levelTranslationConverter}}"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </GroupBox>
+                        </StackPanel>
+                    </Expander>
+                    <DockPanel>
+                        <ListView Name="lstAtpRanking" DockPanel.Dock="Bottom" AlternationCount="2"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True">
+                            <ListView.Resources>
+                                <Style TargetType="ListViewItem">
+                                    <Style.Triggers>
+                                        <Trigger Property="ItemsControl.AlternationIndex"  Value="0">
+                                            <Setter Property="Background" Value="White" />
+                                        </Trigger>
+                                        <Trigger Property="ItemsControl.AlternationIndex"  Value="1">
+                                            <Setter Property="Background" Value="LightGray" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListView.Resources>
+                            <ListView.View>
+                                <GridView x:Name="gdvAtpRanking">
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="Ranking" Click="gdvAtpRanking_header_Click">
+                                            Rang
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Ranking}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="Name" Click="gdvAtpRanking_header_Click">
+                                            Nom
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=InnerPlayer.Name}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <!-- TODO : à remplacer par un système dynamique -->
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_is_winner" Click="gdvAtpRanking_header_Click">
+                                            Vainqueur
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)is_winner]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_points" Click="gdvAtpRanking_header_Click">
+                                            Points
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)points]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_match_win" Click="gdvAtpRanking_header_Click">
+                                            Victoires
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)match_win]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_match_lost" Click="gdvAtpRanking_header_Click">
+                                            Défaites
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)match_lost]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_set_win" Click="gdvAtpRanking_header_Click">
+                                            Sets g.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)set_win]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_set_lost" Click="gdvAtpRanking_header_Click">
+                                            Sets p.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)set_lost]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_game_win" Click="gdvAtpRanking_header_Click">
+                                            Jeux g.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)game_win]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_game_lost" Click="gdvAtpRanking_header_Click">
+                                            Jeux p.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)game_lost]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_tb_win" Click="gdvAtpRanking_header_Click">
+                                            Tie-break g.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)tb_win]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_tb_lost" Click="gdvAtpRanking_header_Click">
+                                            Tie-break p.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)tb_lost]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_ace" Click="gdvAtpRanking_header_Click">
+                                            Aces
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)ace]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_d_f" Click="gdvAtpRanking_header_Click">
+                                            Doubles-fautes
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)d_f]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_sv_pt" Click="gdvAtpRanking_header_Click">
+                                            Pts au service
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)sv_pt]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_first_in" Click="gdvAtpRanking_header_Click">
+                                            1ère balle in
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)first_in]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_first_won" Click="gdvAtpRanking_header_Click">
+                                            1ère balle g.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)first_won]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_second_won" Click="gdvAtpRanking_header_Click">
+                                            2e balle g.
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)second_won]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_sv_gms" Click="gdvAtpRanking_header_Click">
+                                            Nb jeu service
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)sv_gms]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_bp_saved" Click="gdvAtpRanking_header_Click">
+                                            B. break ok
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)bp_saved]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn>
+                                        <GridViewColumnHeader Name="StatType_bp_faced" Click="gdvAtpRanking_header_Click">
+                                            Nb b. break
+                                        </GridViewColumnHeader>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Label Content="{Binding Path=Statistics[(localSvc:StatType)bp_faced]}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

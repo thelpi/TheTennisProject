@@ -1,0 +1,363 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Linq;
+using System.Net;
+using TheTennisProject.Properties;
+using TheTennisProject.Services;
+
+namespace TheTennisProject
+{
+    /// <summary>
+    /// Méthodes statiques diverses.
+    /// </summary>
+    public static class Tools
+    {
+        private const double DAYS_IN_A_YEAR = 365.256363;
+        /// <summary>
+        /// Année par défaut (date vide).
+        /// </summary>
+        public const int DEFAULT_YEAR = 1900;
+
+        /// <summary>
+        /// Calcule l'âge d'un évènement.
+        /// </summary>
+        /// <param name="dateOfEvent">Date de l'évènement.</param>
+        /// <param name="dateComparer">Point de comparaison. Null, valeur par défaut, permet de spécifier <see cref="DateTime.Now"/>.</param>
+        /// <returns>L'âge en année de l'évènement spécifié.</returns>
+        public static int GetEventAge(DateTime dateOfEvent, DateTime? dateComparer = null)
+        {
+            return (new DateTime(1, 1, 1) + ((!dateComparer.HasValue ? DateTime.Now : dateComparer.Value) - dateOfEvent)).Year - 1;
+        }
+
+        /// <summary>
+        /// Calcule l'ordre de tri d'un tour de compétition (pour pallier à la mauvaise position naturelle du match de médaille de bronze olympique).
+        /// </summary>
+        /// <remarks>Le tri va du plus important (la finale) au moins important (le 1er tour).</remarks>
+        /// <param name="round">Le tour à trier.</param>
+        /// <returns>Une valeur décimale indiquant la position de tri du tour.</returns>
+        public static decimal GetSortOrder(this Round round)
+        {
+            return round == Round.BR ? 1.5M : (decimal)round;
+        }
+
+        /// <summary>
+        /// Détermine si le tour de compétition courant est antérieur au tour fourni en argument.
+        /// </summary>
+        /// <param name="round">Le tour de compétition courant.</param>
+        /// <param name="comparer">Le tour de compétition à comparer.</param>
+        /// <returns>True si <paramref name="round"/> est antérieur à <paramref name="comparer"/>, False sinon.</returns>
+        public static bool RoundIsBefore(this Round round, Round comparer)
+        {
+            return comparer.GetSortOrder() < round.GetSortOrder();
+        }
+
+        /// <summary>
+        /// Calcule une approximation de la date de naissance d'un joueur à partir de son âge décimal à une date précise.
+        /// </summary>
+        /// <param name="age">Age du joueur, incluant une partie décimale aussi précise que possible.</param>
+        /// <param name="date">La date à laquelle le joueur à l'âge mentionné.</param>
+        /// <returns>Approximation de la date de naissance du joueur.</returns>
+        public static DateTime ComputeDateOfBirth(double age, DateTime date)
+        {
+            return date
+                    .AddDays((1 - (age - Math.Floor(age))) * DAYS_IN_A_YEAR)
+                    .AddDays(-(DAYS_IN_A_YEAR * (Math.Floor(age) + 1)));
+        }
+
+        /// <summary>
+        /// Convertit un date au format CSV ("yyyymmdd") en une structure <see cref="DateTime"/>.
+        /// </summary>
+        /// <param name="date">la chaîen de caractères représentant la date.</param>
+        /// <returns>La structure <see cref="DateTime"/>.</returns>
+        public static DateTime FormatCsvDateTime(string date)
+        {
+            return Convert.ToDateTime(string.Format("{0}-{1}-{2} 00:00:00", date.Substring(0, 4), date.Substring(4, 2), date.Substring(6, 2)));
+        }
+
+        /// <summary>
+        /// Procède à l'écriture d'un log dans le fichier journal de l'application.
+        /// </summary>
+        /// <param name="line">Log à écrire.</param>
+        public static void WriteLog(string line)
+        {
+            // TODO : vérifier la validité du chemin d'accès au fichier
+            using (var writer = new System.IO.StreamWriter(Properties.Settings.Default.ErrorLogFilePath, true))
+            {
+                writer.WriteLine(line);
+            }
+#if (DEBUG)
+            // TODO : vérifier que ce système fonctionne
+            System.Diagnostics.Debug.WriteLine(line);
+#endif
+        }
+
+        /// <summary>
+        /// Calcule, à partir d'une liste de matchs, la meilleure série de victoires ou la pire série de défaites.
+        /// </summary>
+        /// <remarks>
+        /// <list type="bullet">
+        /// <item>Suppose que les matchs de la liste sont contigus une fois triés.</item>
+        /// <item>Pas besoin de trier au préalable.</item>
+        /// <item>Les forfaits d'avant-match sont exclus.</item>
+        /// </list>
+        /// </remarks>
+        /// <param name="matchesList">La liste de matchs.</param>
+        /// <param name="playerId">L'identifiant du joueur considéré.</param>
+        /// <param name="getLost"><c>True</c> pour récupérer une série de défaites ; <c>False</c> pour une série de victoires.</param>
+        /// <returns>Le nombre de matchs gagnés ou perdus.</returns>
+        public static int GetWinLoseRun(this IEnumerable<Match> matchesList, ulong playerId, bool getLost)
+        {
+            DateTime beginDate;
+            ushort beginNumMatch;
+            return matchesList.GetWinLoseRun(playerId, getLost, out beginDate, out beginNumMatch);
+        }
+
+        /// <summary>
+        /// Calcule, à partir d'une liste de matchs, la meilleure série de victoires ou la pire série de défaites.
+        /// </summary>
+        /// <remarks>
+        /// <list type="bullet">
+        /// <item>Suppose que les matchs de la liste sont contigus une fois triés.</item>
+        /// <item>Pas besoin de trier au préalable.</item>
+        /// <item>Les forfaits d'avant-match sont exclus.</item>
+        /// </list>
+        /// </remarks>
+        /// <param name="matchesList">La liste de matchs.</param>
+        /// <param name="playerId">L'identifiant du joueur considéré.</param>
+        /// <param name="getLost"><c>True</c> pour récupérer une série de défaites ; <c>False</c> pour une série de victoires.</param>
+        /// <param name="beginDate">La date de début du tournoi lors duquel la série a commencé (et non pas la date du match, qui est inconnue).</param>
+        /// <param name="beginNumMatch">Le numéro du match dans le tournoi.</param>
+        /// <returns>Le nombre de matchs gagnés ou perdus.</returns>
+        public static int GetWinLoseRun(this IEnumerable<Match> matchesList, ulong playerId, bool getLost, out DateTime beginDate, out ushort beginNumMatch)
+        {
+            if (matchesList == null)
+            {
+                beginDate = new DateTime();
+                beginNumMatch = 0;
+                return 0;
+            }
+
+            // Filtre les forfaits et trie par date croissante
+            // On ne connait pas la date réelle du match, donc on trie par date de début de tournoi, puis par tour
+            List<Match> filteredAndChronologicalMatchesListWithoutWalkover =
+                matchesList
+                    .Where(_ => !_.Walkover)
+                    .OrderBy(_ => _.Edition.DateBegin)
+                    .ThenByDescending(_ => _.Round.GetSortOrder())
+                    .ToList();
+
+            int maxLose = 0, maxWin = 0, currentWin = 0, currentLose = 0;
+            ushort winBeginNumMatch = 0, loseBeginNumMatch = 0;
+            DateTime winBeginDate = new DateTime(), loseBeginDate = new DateTime();
+            foreach (Match match in filteredAndChronologicalMatchesListWithoutWalkover)
+            {
+                if (match.Winner.ID == playerId)
+                {
+                    currentWin++;
+                    currentLose = 0;
+                    loseBeginNumMatch = 0;
+                    if (maxWin < currentWin)
+                    {
+                        maxWin = currentWin;
+                        if (winBeginNumMatch == 0)
+                        {
+                            winBeginNumMatch = match.MatchNum;
+                            winBeginDate = match.Edition.DateBegin;
+                        }
+                    }
+                }
+                else
+                {
+                    currentLose++;
+                    currentWin = 0;
+                    winBeginNumMatch = 0;
+                    if (maxLose < currentLose)
+                    {
+                        maxLose = currentLose;
+                        if (loseBeginNumMatch == 0)
+                        {
+                            loseBeginNumMatch = match.MatchNum;
+                            loseBeginDate = match.Edition.DateBegin;
+                        }
+                    }
+                }
+            }
+
+            if (getLost)
+            {
+                beginDate = loseBeginDate;
+                beginNumMatch = loseBeginNumMatch;
+                return maxLose;
+            }
+
+            beginDate = winBeginDate;
+            beginNumMatch = winBeginNumMatch;
+            return maxWin;
+        }
+
+        #region Traductions et attributs d'énumérations
+
+        /// <summary>
+        /// Récupère la description associée à une valeur d'énumération.
+        /// </summary>
+        /// <typeparam name="T">Le type de l'énumération.</typeparam>
+        /// <param name="value">La valeur d'énumération.</param>
+        /// <returns>La description de la valeur d'énumération.
+        /// <c>Null</c> si <paramref name="value"/> n'a pas pu être convertie en une valeur de l'énumération.
+        /// <paramref name="value"/> si la valeur d'énumération n'a pas de description spécifiée.</returns>
+        public static string GetEnumDescription<T>(object value) where T : struct, IConvertible
+        {
+            Type type = typeof(T);
+            var name = Enum.GetNames(type).Where(f => f.Equals(value.ToString(), StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+
+            if (name == null)
+            {
+                return string.Empty;
+            }
+            var customAttribute = type.GetField(name).GetCustomAttributes(typeof(DescriptionAttribute), false);
+            return customAttribute.Length > 0 ? ((DescriptionAttribute)customAttribute[0]).Description : name;
+        }
+
+        /// <summary>
+        /// Récupère le nom de colonne SQL associé à une valeur d'énumération.
+        /// </summary>
+        /// <typeparam name="T">Le type de l'énumération.</typeparam>
+        /// <param name="value">La valeur d'énumération.</param>
+        /// <returns>Le nom de colonne SQL de la valeur d'énumération.
+        /// <c>Null</c> si <paramref name="value"/> n'a pas pu être convertie en une valeur de l'énumération.
+        /// <paramref name="value"/> si la valeur d'énumération n'a pas de spécification sur sa colonne SQL associée.</returns>
+        public static string GetEnumSqlMapping<T>(object value) where T : struct, IConvertible
+        {
+            Type type = typeof(T);
+            var name = Enum.GetNames(type).Where(f => f.Equals(value.ToString(), StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+
+            if (name == null)
+            {
+                return string.Empty;
+            }
+            var customAttribute = type.GetField(name).GetCustomAttributes(typeof(SqlMappingAttribute), false);
+            return customAttribute.Length > 0 ? ((SqlMappingAttribute)customAttribute[0]).SqlMapping : name;
+        }
+
+        /// <summary>
+        /// Récupère la valeur d'une énumération à partir de sa colonne SQL associée.
+        /// </summary>
+        /// <typeparam name="T">Le type d'énumération.</typeparam>
+        /// <param name="sqlMapping">Le nom de colonne SQL.</param>
+        /// <returns>La valeur de l'énumération.</returns>
+        public static T GetEnumValueFromSqlMapping<T>(string sqlMapping) where T : struct, IConvertible
+        {
+            Type type = typeof(T);
+            var names = Enum.GetNames(type);
+
+            if (names != null && sqlMapping != null)
+            {
+                foreach (var name in names)
+                {
+                    var customAttribute = type.GetField(name).GetCustomAttributes(typeof(SqlMappingAttribute), false);
+                    if (customAttribute.Length > 0
+                        && sqlMapping.Equals(((SqlMappingAttribute)customAttribute[0]).SqlMapping, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        T result;
+                        if (Enum.TryParse(name, out result))
+                        {
+                            return result;
+                        }
+                    }
+                }
+            }
+
+            return default(T);
+        }
+
+        /// <summary>
+        /// Récupère la traduction associée à une valeur de l'énumération de surface.
+        /// </summary>
+        /// <param name="surface">La surface à traduire.</param>
+        /// <returns>Traduction de l'intitulé de la surface.</returns>
+        public static string GetTranslation(this Surface surface)
+        {
+            var member = surface.GetType().GetMember(surface.ToString())[0];
+            return ((TranslationAttribute)Attribute.GetCustomAttribute(member, typeof(TranslationAttribute))).Translation;
+        }
+
+        /// <summary>
+        /// Récupère la traduction associée à une valeur de l'énumération de niveau.
+        /// </summary>
+        /// <param name="level">Le niveau à traduire.</param>
+        /// <returns>Traduction de l'intitulé du niveau.</returns>
+        public static string GetTranslation(this Level level)
+        {
+            var member = level.GetType().GetMember(level.ToString())[0];
+            return ((TranslationAttribute)Attribute.GetCustomAttribute(member, typeof(TranslationAttribute))).Translation;
+        }
+
+        /// <summary>
+        /// Récupère la traduction associée à une valeur de l'énumération de tour.
+        /// </summary>
+        /// <param name="round">Le tour à traduire.</param>
+        /// <returns>Traduction de l'intitulé du tour.</returns>
+        public static string GetTranslation(this Round round)
+        {
+            var member = round.GetType().GetMember(round.ToString())[0];
+            return ((TranslationAttribute)Attribute.GetCustomAttribute(member, typeof(TranslationAttribute))).Translation;
+        }
+
+        #endregion
+
+        #region Recherche d'image
+
+        /// <summary>
+        /// Tente de récupérer l'URL d'une image sur Google pour une recherche donnée (le plus souvent, un joueur).
+        /// </summary>
+        /// <param name="pageTitle">La recherche à effectuer.</param>
+        /// <returns>L'URL de la première image trouvée, vide en cas d'échec.</returns>
+        public static string GetImageFromGoogle(string pageTitle)
+        {
+            if (pageTitle == null)
+            {
+                pageTitle = string.Empty;
+            }
+
+            pageTitle = Uri.EscapeDataString(pageTitle.Trim());
+
+            string rawData = null;
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(string.Format(Settings.Default.SearchImgUrlPattern, pageTitle));
+            using (WebResponse response = request.GetResponse())
+            {
+                using (Stream stream = response.GetResponseStream())
+                {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        rawData = reader.ReadToEnd();
+                    }
+                }
+            }
+
+            string imageUrl = string.Empty;
+
+            int mediaGroupIndexStart = rawData.IndexOf("media_result_group");
+            if (mediaGroupIndexStart >= 0)
+            {
+                rawData = rawData.Substring(mediaGroupIndexStart);
+                int firstImgUrlIndex = rawData.IndexOf("imgurl=");
+                if (firstImgUrlIndex >= 0)
+                {
+                    rawData = rawData.Substring(firstImgUrlIndex + "imgurl=".Length);
+                    int endOfUrlIndex = rawData.IndexOf("&amp;imgrefurl=");
+                    if (endOfUrlIndex >= 0)
+                    {
+                        imageUrl = rawData.Substring(0, endOfUrlIndex);
+                    }
+                }
+            }
+
+            return imageUrl;
+        }
+
+        #endregion
+    }
+}

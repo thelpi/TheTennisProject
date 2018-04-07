@@ -1,0 +1,30 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="TheTennisProject.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="OpenEraYearBegin" Type="System.UInt32" Scope="Application">
+      <Value Profile="(Default)">1968</Value>
+    </Setting>
+    <Setting Name="ConnectionStringPattern" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">Server={0};Database={1};Uid={2};Pwd={3};</Value>
+    </Setting>
+    <Setting Name="SQL_server" Type="System.String" Scope="User">
+      <Value Profile="(Default)">localhost</Value>
+    </Setting>
+    <Setting Name="SQL_db" Type="System.String" Scope="User">
+      <Value Profile="(Default)">the_tennis_project</Value>
+    </Setting>
+    <Setting Name="SQL_uid" Type="System.String" Scope="User">
+      <Value Profile="(Default)">root</Value>
+    </Setting>
+    <Setting Name="SQL_pwd" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SearchImgUrlPattern" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://www.google.fr/search?q={0}</Value>
+    </Setting>
+    <Setting Name="ErrorLogFilePath" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">D:\Ma programmation\c#\Projects\TheTennisProject\TheTennisProject\tennis.log</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

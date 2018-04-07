@@ -1,0 +1,32 @@
+dupliquer table année précédente
+extraire les codes sans doublons sous Excel
+vérifier les changements de tournoi sur wikipédia
+
+calculer les tournois de la liste qui ne match pas "code_new" de l'année précédent
+
+SELECT * FROM `tournaments` join editions on tournaments.ID = editions.tournament_ID WHERE `original_code` in (
+[liste_du_dessus]
+) order by editions.year desc 
+
+récupérer les ID et préparer les transitions (exemple)
+320 ---> eastbourne
+322 ---> budapest
+259 ---> Nice
+288 ---> changement de code
+
+supprimer les lignes ci-dessus de la table dupliquée
+pour le/les changements de code sur un tournoi identique (ex 288 - Rio), créer la ligne(s) SI NECESSAIRE (parfois le code revient à celui d'origine)
+
+créer une table pour insérer les nouveaux codes temporairement pour pouvoir faire le diff inverse
+create table temp_tournoi (code varchar(150))
+insert into temp_tournoi (codi) values (...), (...)
+
+Cette requete trouve les tournois qui matchent des tournois originaux (lignes à supprimer de la table de matching)
+SELECT * FROM `temp_tournoi` WHERE `codi` not in (select code_new from tournaments_code_2017)
+and codi in (select tournaments.original_code from tournaments)
+
+inverser la seconde condition : ce sont les nouvelles lignes de matchs
+Mapper chaque code avec le fichier Excel
+créer les tournois
+
+dans le doute, insérer les codes qui n'ont pas changé dans la table de matching
