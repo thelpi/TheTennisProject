@@ -41,14 +41,15 @@ namespace TheTennisProject.Services
         /// </summary>
         public bool OnTwoWeeks { get; private set; }
         /// <summary>
-        /// Date approximée (le dimanche qui suit <see cref="DateBegin"/>, ou le suivant si <see cref="OnTwoWeeks"/> est vrai).
+        /// Date approximée de fin de tournoi (toujours un dimanche).
         /// </summary>
-        /// <remarks>Si le tournoi débute un dimanche, un jour supplémentaire est ajouté.</remarks>
         public DateTime DateEnd
         {
             get
             {
-                return DateBegin.AddDays(7 - (int)DateBegin.DayOfWeek).AddDays(OnTwoWeeks ? 7 : 0);
+                int requiredDays = Convert.ToInt32(Math.Ceiling(Convert.ToInt32(Math.Ceiling(Math.Log(DrawSize, 2))) * (decimal)1.5));
+                DateTime requiredDate = DateBegin.AddDays(requiredDays);
+                return requiredDate.DayOfWeek == DayOfWeek.Sunday ? requiredDate : requiredDate.AddDays(7 - (int)requiredDate.DayOfWeek);
             }
         }
         /// <summary>

@@ -448,7 +448,7 @@ namespace TheTennisProject
                     {
                         CreateEditionsStatistics(edition);
                     }
-                    playersofTheWeek.Concat(edition.Statistics.Select(_ => _.Player.ID));
+                    playersofTheWeek.AddRange(edition.Statistics.Select(_ => _.Player.ID));
                 }
 
                 playersofTheWeek = playersofTheWeek.Distinct().ToList();
