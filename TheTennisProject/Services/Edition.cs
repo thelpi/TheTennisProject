@@ -41,6 +41,17 @@ namespace TheTennisProject.Services
         /// </summary>
         public bool OnTwoWeeks { get; private set; }
         /// <summary>
+        /// Date approximée (le dimanche qui suit <see cref="DateBegin"/>, ou le suivant si <see cref="OnTwoWeeks"/> est vrai).
+        /// </summary>
+        /// <remarks>Si le tournoi débute un dimanche, un jour supplémentaire est ajouté.</remarks>
+        public DateTime DateEnd
+        {
+            get
+            {
+                return DateBegin.AddDays(7 - (int)DateBegin.DayOfWeek).AddDays(OnTwoWeeks ? 7 : 0);
+            }
+        }
+        /// <summary>
         /// Statistiques relatives à tous les joueurs ayant participés au tournoi.
         /// </summary>
         public ReadOnlyCollection<Stats> Statistics { get { return _stats.AsReadOnly(); } }
