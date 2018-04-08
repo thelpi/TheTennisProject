@@ -234,6 +234,7 @@
     <None Include="Resources\button_cancel.png" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="ExternalResources\notes.txt" />
     <Resource Include="ExternalResources\procedure_manuelle_tournois.txt" />
     <Content Include="ExternalResources\structure.sql" />
     <Content Include="ExternalResources\the_tennis_project_DB.sql" />

@@ -277,6 +277,20 @@ namespace TheTennisProject
             return (Convert.ToUInt32((date - firstMonday).TotalDays) / 7) + 1;
         }
 
+        /// <summary>
+        /// Détermine si une année a 53 semaines officielles au lieu de 52.
+        /// </summary>
+        /// <param name="year">L'année.</param>
+        /// <returns>Vrai si 53 semaines ; Faux sinon.</returns>
+        public static bool YearIs53Week(int year)
+        {
+            DayOfWeek[] endOfWeekDays = new DayOfWeek[] { DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+
+            DateTime firstDayOfNextYear = new DateTime(year + 1, 1, 1);
+
+            return endOfWeekDays.Contains(firstDayOfNextYear.DayOfWeek);
+        }
+
         #region Traductions et attributs d'énumérations
 
         /// <summary>

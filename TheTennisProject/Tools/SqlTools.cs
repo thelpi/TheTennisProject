@@ -296,6 +296,31 @@ namespace TheTennisProject
             return Convert.IsDBNull(reader[columnName]) ? null : reader[columnName].ToString();
         }
 
+        /// <summary>
+        /// Extension <see cref="DataTableReader"/>. Récupère une liste d'identifiants depuis un jeu de données.
+        /// </summary>
+        /// <remarks>Le stockage est sous forme de chaîne avec séparateur ";".</remarks>
+        /// <param name="reader">Ligne actuelle du jeu de données.</param>
+        /// <param name="columnName">Nom de la colonne.</param>
+        /// <returns>La liste d'identifiants.</returns>
+        /// <exception cref="ArgumentException">La colonne spécifiée n'existe pas dans le jeu de données.</exception>
+        public static IEnumerable<ulong> ToIdList(this DataTableReader reader, string columnName)
+        {
+            string[] components = reader.GetString(columnName).Split(';');
+
+            List<ulong> idList = new List<ulong>();
+            foreach (string component in components)
+            {
+                ulong id;
+                if (ulong.TryParse(component, out id))
+                {
+                    idList.Add(id);
+                }
+            }
+
+            return idList;
+        }
+
         #endregion
 
         /// <summary>
