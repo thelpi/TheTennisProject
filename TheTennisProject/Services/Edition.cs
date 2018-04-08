@@ -170,8 +170,8 @@ namespace TheTennisProject.Services
         /// <summary>
         /// Récupère le liste des éditions de tournoi ayant eu lieu sur une période de temps donnée et suivant d'autres critères optionnels.
         /// </summary>
-        /// <param name="startDate">Date de début.</param>
-        /// <param name="endDate">Date de fin.</param>
+        /// <param name="startDate">Date de début (inclusive).</param>
+        /// <param name="endDate">Date de fin (exclusive).</param>
         /// <param name="levels">Liste de <see cref="Level"/>.</param>
         /// <param name="surfaces">Liste de <see cref="Surface"/>.</param>
         /// <param name="indoorOnly">Si activé, filtre les éditions indoor ; sinon ne filtre pas (ne récupère pas les éditions outdoor seules).</param>
@@ -181,7 +181,7 @@ namespace TheTennisProject.Services
             // TODO : il faudrait une information "DateEnd" sur l'édition dans la base de données
             return GetList<Edition>().Where(e =>
                 e.DateBegin >= startDate
-                && e.DateBegin <= endDate
+                && e.DateBegin < endDate
                 && (levels?.Any() ==true ? levels.Contains(e.TournamentLevel) : true)
                 && (surfaces?.Any() ==true ? surfaces.Contains(e.TournamentSurface) : true)
                 && (indoorOnly ? e.TournamentIsIndoor : true)

@@ -7,8 +7,7 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-#pragma warning disable CS1587
-#pragma warning disable CS1570
+
 namespace TheTennisProject.Properties {
     using System;
     
@@ -58,6 +57,16 @@ namespace TheTennisProject.Properties {
             }
             set {
                 resourceCulture = value;
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap button_cancel {
+            get {
+                object obj = ResourceManager.GetObject("button_cancel", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
         

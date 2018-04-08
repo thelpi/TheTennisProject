@@ -48,16 +48,13 @@ namespace TheTennisProject.Graphics
         private System.Timers.Timer _animationTimer;
 
         // Délai entre les rafraichissements de l'animation "ATP Animation"
-        private double _animationRefreshTickTime = 100;
+        private double _animationRefreshTickTime = 20;
 
         // Date actuelle de l'animation (fin)
         private DateTime? _animationCurrentDate;
 
         // Indique qu'un "tick" de l'animation est en cours de calcul
         private volatile bool _animationisComputing;
-
-        // Date du premier classement ATP possible
-        private readonly DateTime ATP_DEBUT = new DateTime((int)Settings.Default.OpenEraYearBegin, 1, 7);
 
         // Date de début de l'animation
         private DateTime? _animationBeginDate = null;
@@ -74,18 +71,13 @@ namespace TheTennisProject.Graphics
         private wdwMain()
         {
             InitializeComponent();
+            InitializeAtpAnimationTab();
             LoadBackgroundDatas(
                 delegate (object sender, DoWorkEventArgs evt)
                 {
                     SqlMapping.Instance.Import(sender as BackgroundWorker);
                 }, true, true, null, null
             );
-            _animationTimer = new System.Timers.Timer(_animationRefreshTickTime);
-            _animationTimer.Elapsed += _animationTimer_Elapsed;
-            lstAtpLiveRanking.ItemsSource = _observableListAtpLive;
-            btnAtpLiveStart.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play) };
-            dtpAtpLiveDateBegin.SelectedDate = ATP_DEBUT;
-            dtpAtpLiveDateBegin.DisplayDateStart = ATP_DEBUT;
         }
 
         /// <summary>
@@ -162,6 +154,77 @@ namespace TheTennisProject.Graphics
 
             cbbPalmaresTournament.ItemsSource = Tournament.GetList.OrderBy(_ => _.Name);
             cbbPalmaresTournament.DisplayMemberPath = "Name";
+        }
+
+        // Méthode interne du construction du classement ATP pour les méthodes "RecomputeAtpRanking" et "RecomputeAtpLiveRanking"
+        private void RecomputeAtpRankingInner(object sender, DoWorkEventArgs evt)
+        {
+            Dictionary<StatType, uint> statsDictionnary = Enum.GetValues(typeof(StatType)).Cast<StatType>().ToDictionary(st => st, st => (uint)0);
+            statsDictionnary.Remove(StatType.round);
+
+            List<Bindings.PlayerAtpRanking> playersRankList = new List<Bindings.PlayerAtpRanking>();
+
+            object[] arguments = evt.Argument as object[];
+            List<Edition> editions = Edition.GetByPeriod(
+                (DateTime)arguments[0],
+                (DateTime)arguments[1],
+                arguments[3] as IEnumerable<Level>,
+                arguments[4] as IEnumerable<Surface>,
+                (bool)arguments[5]
+            );
+
+            foreach (Edition edition in editions)
+            {
+                // TODO : peut être pas la meilleure solution.
+                if (!edition.StatisticsAreCompute)
+                {
+                    SqlMapping.Instance.CreateEditionsStatistics(edition);
+                }
+                foreach (Edition.Stats stat in edition.Statistics)
+                {
+                    Bindings.PlayerAtpRanking currentBinding = playersRankList.FirstOrDefault(prl => prl.InnerPlayer.ID == stat.Player.ID);
+                    if (currentBinding == null)
+                    {
+                        currentBinding = new Bindings.PlayerAtpRanking(stat.Player, statsDictionnary);
+                        playersRankList.Add(currentBinding);
+                    }
+                    if (currentBinding.Statistics.ContainsKey(stat.StatType))
+                    {
+                        if (stat.StatType == StatType.is_winner)
+                        {
+                            Edition.Stats roundStateValue = edition.Statistics.First(s => s.Player.ID == stat.Player.ID && s.StatType == StatType.round);
+                            if (roundStateValue.Value == (uint)Round.F)
+                            {
+                                currentBinding.AggregateStatistic(stat.StatType, stat.Value);
+                            }
+                        }
+                        else
+                        {
+                            currentBinding.AggregateStatistic(stat.StatType, stat.Value);
+                        }
+                    }
+                }
+            }
+
+            // filtrage par nationalité
+            if (arguments[6] != null)
+            {
+                playersRankList.RemoveAll(p => !p.InnerPlayer.Nationality.Equals(((Country)arguments[6]).CodeIso3, StringComparison.InvariantCultureIgnoreCase));
+            }
+
+            // Note : à chaque refiltrage, le tri est perdu
+            _rankingStatsSortParameter.Clear();
+            _rankingStatsSortParameter.Add(StatType.points.ToString(), true);
+
+            Bindings.PlayerAtpRanking.SortAndSetRanking(ref playersRankList, _rankingStatsSortParameter);
+
+            // filtrage par nom
+            if (arguments[2] != null && !string.IsNullOrWhiteSpace(arguments[2].ToString()))
+            {
+                playersRankList.RemoveAll(p => !p.InnerPlayer.Name.ToLowerInvariant().Contains(arguments[2].ToString().ToLowerInvariant()));
+            }
+
+            evt.Result = playersRankList;
         }
 
         #region Onglet "fiche joueur"
@@ -471,151 +534,10 @@ namespace TheTennisProject.Graphics
         #region Onglet "Classement ATP"
 
         // calcule le classement ATP aux dates sélectionnées et crée la liaison avec le composant ListView
-        private void RecomputeAtpRanking(bool forLiveAnimation)
+        private void RecomputeAtpRanking()
         {
-            if (forLiveAnimation)
-            {
-                if (_animationisComputing)
-                {
-                    return;
-                }
-                _animationisComputing = true;
-            }
-
-            DateTime dateBegin;
-            DateTime dateEnd;
-            if (forLiveAnimation)
-            {
-                if (!_animationBeginDate.HasValue)
-                {
-                    _animationBeginDate = dtpAtpLiveDateBegin.SelectedDate;
-                }
-
-                bool yearStep = cbbAtpLiveStep.SelectedIndex == 1;
-                if (!_animationCurrentDate.HasValue)
-                {
-                    _animationCurrentDate = dtpAtpLiveDateBegin.SelectedDate.Value;
-                }
-                else
-                {
-                    _animationCurrentDate = yearStep ? _animationCurrentDate.Value.AddYears(1) : _animationCurrentDate.Value.AddDays(7);
-                }
-                if (chkAptLiveCumuled.IsChecked == true)
-                {
-                    dateBegin = _animationBeginDate.Value;
-                }
-                else
-                {
-                    if (yearStep)
-                    {
-                        dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
-                           ATP_DEBUT : _animationCurrentDate.Value.AddYears(-1);
-                    }
-                    else
-                    {
-                        dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
-                            _animationBeginDate.Value : _animationCurrentDate.Value.AddYears(-1);
-                    }
-                }
-                dateEnd = _animationCurrentDate.Value;
-            }
-            else
-            {
-                dateBegin = dtpAtpRankingDateBegin.DisplayDate;
-                dateEnd = dtpAtpRankingDateEnd.DisplayDate;
-            }
-
-            object[] asyncCallArgs = forLiveAnimation ?
-                new object[]
-                {
-                    dateBegin,
-                    dateEnd,
-                    string.Empty,
-                    new List<Level>(),
-                    new List<Surface>(),
-                    false,
-                    null
-                } : new object[]
-                {
-                    dateBegin,
-                    dateEnd,
-                    txtPlayerName.Text,
-                    lsbSelectLevel.SelectedItems.Cast<Level>(),
-                    lsbelectSurface.SelectedItems.Cast<Surface>(),
-                    chkIsIndoor.IsChecked == true,
-                    cbbNationalityFilter.SelectedItem
-                };
-
             LoadBackgroundDatas(
-                delegate(object sender, DoWorkEventArgs evt)
-                {
-                    Dictionary<StatType, uint> statsDictionnary = Enum.GetValues(typeof(StatType)).Cast<StatType>().ToDictionary(st => st, st => (uint)0);
-                    statsDictionnary.Remove(StatType.round);
-
-                    List<Bindings.PlayerAtpRanking> playersRankList = new List<Bindings.PlayerAtpRanking>();
-
-                    object[] arguments = evt.Argument as object[];
-                    List<Edition> editions = Edition.GetByPeriod(
-                        (DateTime)arguments[0],
-                        (DateTime)arguments[1],
-                        arguments[3] as IEnumerable<Level>,
-                        arguments[4] as IEnumerable<Surface>,
-                        (bool)arguments[5]
-                    );
-
-                    foreach (Edition edition in editions)
-                    {
-                        // TODO : peut être pas la meilleure solution.
-                        if (!edition.StatisticsAreCompute)
-                        {
-                            SqlMapping.Instance.CreateEditionsStatistics(edition);
-                        }
-                        foreach (Edition.Stats stat in edition.Statistics)
-                        {
-                            Bindings.PlayerAtpRanking currentBinding = playersRankList.FirstOrDefault(prl => prl.InnerPlayer.ID == stat.Player.ID);
-                            if (currentBinding == null)
-                            {
-                                currentBinding = new Bindings.PlayerAtpRanking(stat.Player, statsDictionnary);
-                                playersRankList.Add(currentBinding);
-                            }
-                            if (currentBinding.Statistics.ContainsKey(stat.StatType))
-                            {
-                                if (stat.StatType == StatType.is_winner)
-                                {
-                                    Edition.Stats roundStateValue = edition.Statistics.First(s => s.Player.ID == stat.Player.ID && s.StatType == StatType.round);
-                                    if (roundStateValue.Value == (uint)Round.F)
-                                    {
-                                        currentBinding.AggregateStatistic(stat.StatType, stat.Value);
-                                    }
-                                }
-                                else
-                                {
-                                    currentBinding.AggregateStatistic(stat.StatType, stat.Value);
-                                }
-                            }
-                        }
-                    }
-
-                    // filtrage par nationalité
-                    if (arguments[6] != null)
-                    {
-                        playersRankList.RemoveAll(p => !p.InnerPlayer.Nationality.Equals(((Country)arguments[6]).CodeIso3, StringComparison.InvariantCultureIgnoreCase));
-                    }
-
-                    // Note : à chaque refiltrage, le tri est perdu
-                    _rankingStatsSortParameter.Clear();
-                    _rankingStatsSortParameter.Add(StatType.points.ToString(), true);
-
-                    Bindings.PlayerAtpRanking.SortAndSetRanking(ref playersRankList, _rankingStatsSortParameter);
-
-                    // filtrage par nom
-                    if (arguments[2] != null && !string.IsNullOrWhiteSpace(arguments[2].ToString()))
-                    {
-                        playersRankList.RemoveAll(p => !p.InnerPlayer.Name.ToLowerInvariant().Contains(arguments[2].ToString().ToLowerInvariant()));
-                    }
-
-                    evt.Result = playersRankList;
-                }, false, false,
+                RecomputeAtpRankingInner, false, false,
                 delegate(object result)
                 {
                     #region Reconstruction des colonnes (désactivé)
@@ -650,29 +572,27 @@ namespace TheTennisProject.Graphics
                     }
                     */
                     #endregion
-
-                    List<Bindings.PlayerAtpRanking> typedResult = result as List<Bindings.PlayerAtpRanking>;
-                    if (forLiveAnimation)
-                    {
-                        _observableListAtpLive.Clear();
-                        typedResult.ForEach(_ => _observableListAtpLive.Add(_));
-                        lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
-                        _animationisComputing = false;
-                    }
-                    else
-                    {
-                        lstAtpRanking.ItemsSource = typedResult;
-                    }
+                    
+                    lstAtpRanking.ItemsSource = result as List<Bindings.PlayerAtpRanking>;
                 },
-                asyncCallArgs,
-                forLiveAnimation
+                new object[]
+                {
+                    dtpAtpRankingDateBegin.DisplayDate,
+                    dtpAtpRankingDateEnd.DisplayDate,
+                    txtPlayerName.Text,
+                    lsbSelectLevel.SelectedItems.Cast<Level>(),
+                    lsbelectSurface.SelectedItems.Cast<Surface>(),
+                    chkIsIndoor.IsChecked == true,
+                    cbbNationalityFilter.SelectedItem
+                },
+                false
             );
         }
 
         // se produit quand le bouton de filtrage est cliqué
         private void btnFilterAction_Click(object sender, RoutedEventArgs e)
         {
-            RecomputeAtpRanking(false);
+            RecomputeAtpRanking();
         }
 
         // se produit quand une entête de colonne est cliquée pour tri
@@ -751,6 +671,7 @@ namespace TheTennisProject.Graphics
             {
                 _animationTimer.Stop();
                 _animationIsRunning = false;
+                _animationisComputing = false;
                 btnAtpLiveStart.Content =
                     new Image()
                     {
@@ -762,7 +683,103 @@ namespace TheTennisProject.Graphics
         // Se produit au "tick" du timer qui gère l'animation ATP
         private void _animationTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            Dispatcher.Invoke(new Action<bool>(RecomputeAtpRanking), true);
+            Dispatcher.Invoke(new Action(RecomputeAtpLiveRanking));
+        }
+
+        // Se produit au clic sur le bouton d'annulation d'animation ATP
+        private void btnEraseAtpLive_Click(object sender, RoutedEventArgs e)
+        {
+            _animationTimer.Stop();
+            _animationIsRunning = false;
+            _animationisComputing = false;
+            btnAtpLiveStart.Content =
+                new Image()
+                {
+                    Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play)
+                };
+            _animationCurrentDate = null;
+            _animationBeginDate = null;
+            _observableListAtpLive.Clear();
+        }
+
+        // Construction du classement ATP "live" pour l'animation
+        private void RecomputeAtpLiveRanking()
+        {
+            if (_animationisComputing)
+            {
+                return;
+            }
+            _animationisComputing = true;
+
+            if (!_animationBeginDate.HasValue)
+            {
+                _animationBeginDate = dtpAtpLiveDateBegin.SelectedDate;
+            }
+
+            bool yearStep = cbbAtpLiveStep.SelectedIndex == 1;
+            if (!_animationCurrentDate.HasValue)
+            {
+                _animationCurrentDate = dtpAtpLiveDateBegin.SelectedDate.Value;
+            }
+            else
+            {
+                _animationCurrentDate = yearStep ? _animationCurrentDate.Value.AddDays(7 * 52) : _animationCurrentDate.Value.AddDays(7);
+            }
+
+            DateTime dateBegin;
+            DateTime dateEnd = _animationCurrentDate.Value;
+            if (chkAptLiveCumuled.IsChecked == true)
+            {
+                dateBegin = _animationBeginDate.Value;
+            }
+            else
+            {
+                if (yearStep)
+                {
+                    dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+                       Tools.ATP_RANKING_DEBUT : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
+                }
+                else
+                {
+                    dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+                        _animationBeginDate.Value : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
+                }
+            }
+
+            LoadBackgroundDatas(
+                RecomputeAtpRankingInner, false, false,
+                delegate (object result)
+                {
+                    List<Bindings.PlayerAtpRanking> typedResult = result as List<Bindings.PlayerAtpRanking>;
+                    _observableListAtpLive.Clear();
+                    typedResult.ForEach(_ => _observableListAtpLive.Add(_));
+                    lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
+                    _animationisComputing = false;
+                },
+                new object[]
+                {
+                    dateBegin,
+                    dateEnd,
+                    string.Empty,
+                    new List<Level>(),
+                    new List<Surface>(),
+                    false,
+                    null
+                },
+                true
+            );
+        }
+
+        // Initialise les composants graphiques de l'onglet "ATP animation"
+        private void InitializeAtpAnimationTab()
+        {
+            _animationTimer = new System.Timers.Timer(_animationRefreshTickTime);
+            _animationTimer.Elapsed += _animationTimer_Elapsed;
+            lstAtpLiveRanking.ItemsSource = _observableListAtpLive;
+            btnAtpLiveStart.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play) };
+            btnEraseAtpLive.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.button_cancel) };
+            dtpAtpLiveDateBegin.SelectedDate = Tools.ATP_RANKING_DEBUT;
+            dtpAtpLiveDateBegin.DisplayDateStart = Tools.ATP_RANKING_DEBUT;
         }
 
         #endregion

@@ -16,7 +16,7 @@ using TheTennisProject.Services;
 namespace TheTennisProject
 {
     /// <summary>
-    /// Méthodes statiques diverses.
+    /// Méthodes et constantes statiques.
     /// </summary>
     public static class Tools
     {
@@ -26,6 +26,10 @@ namespace TheTennisProject
         /// Année par défaut (date vide).
         /// </summary>
         public const int DEFAULT_YEAR = 1900;
+        /// <summary>
+        /// Date du premier classement ATP possible.
+        /// </summary>
+        public static readonly DateTime ATP_RANKING_DEBUT = new DateTime((int)Settings.Default.OpenEraYearBegin, 1, 1);
 
         /// <summary>
         /// Calcule l'âge d'un évènement.
