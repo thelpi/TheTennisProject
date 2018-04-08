@@ -201,10 +201,9 @@ namespace TheTennisProject.Services
         /// <returns>Une liste d'éditions de tournois.</returns>
         public static List<Edition> GetByPeriod(DateTime startDate, DateTime endDate, IEnumerable<Level> levels, IEnumerable<Surface> surfaces, bool indoorOnly)
         {
-            // TODO : il faudrait une information "DateEnd" sur l'édition dans la base de données
             return GetList<Edition>().Where(e =>
-                e.DateBegin >= startDate
-                && e.DateBegin < endDate
+                e.DateEnd >= startDate
+                && e.DateEnd < endDate
                 && (levels?.Any() ==true ? levels.Contains(e.TournamentLevel) : true)
                 && (surfaces?.Any() ==true ? surfaces.Contains(e.TournamentSurface) : true)
                 && (indoorOnly ? e.TournamentIsIndoor : true)

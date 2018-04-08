@@ -236,6 +236,47 @@ namespace TheTennisProject
             }
         }
 
+        /// <summary>
+        /// Calcule le premier lundi ISO d'une année donnée.
+        /// </summary>
+        /// <param name="year">Année.</param>
+        /// <returns>Premier lundi.</returns>
+        public static DateTime GetMondayOfFirstWeekIsoOfYear(int year)
+        {
+            DateTime firstDayOfYear = new DateTime(year, 1, 1);
+            if (firstDayOfYear.DayOfWeek == DayOfWeek.Friday)
+            {
+                firstDayOfYear = new DateTime(year, 1, 4);
+            }
+            else if (firstDayOfYear.DayOfWeek == DayOfWeek.Saturday)
+            {
+                firstDayOfYear = new DateTime(year, 1, 3);
+            }
+            else if (firstDayOfYear.DayOfWeek == DayOfWeek.Sunday)
+            {
+                firstDayOfYear = new DateTime(year, 1, 2);
+            }
+            return firstDayOfYear;
+        }
+
+        /// <summary>
+        /// Calcule le numéro de semaine d'une date donnée.
+        /// </summary>
+        /// <param name="date">Date.</param>
+        /// <returns>Numéro de semaine.</returns>
+        public static uint GetWeekNoFromDate(DateTime date)
+        {
+            DateTime firstMonday = GetMondayOfFirstWeekIsoOfYear(date.Year);
+
+            if (date < firstMonday)
+            {
+                return 53;
+            }
+
+            // résultat de la division entière (modulo 7)
+            return (Convert.ToUInt32((date - firstMonday).TotalDays) / 7) + 1;
+        }
+
         #region Traductions et attributs d'énumérations
 
         /// <summary>

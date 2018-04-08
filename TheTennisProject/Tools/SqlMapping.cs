@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using TheTennisProject.Services;
 
 namespace TheTennisProject
@@ -80,6 +81,7 @@ namespace TheTennisProject
             }
 
             // SetPlayerStatsForYearEditions(2017);
+            // SetAtpRankingForYear(2017);
         }
 
         // Calcule le nombre de données à charger.
@@ -342,38 +344,8 @@ namespace TheTennisProject
             }
         }
 
-        // TODO : retirer ce code mort si confirmée
-        /*public List<ulong> GetActivePlayersId(DateTime begin, DateTime end)
-        {
-            if (end < begin)
-            {
-                var temp = end;
-                end = begin;
-                begin = temp;
-            }
-
-            var idList = new List<ulong>();
-
-            var sbSql = new System.Text.StringBuilder();
-            sbSql.AppendLine("select m.winner_id as ID from matches as m ");
-            sbSql.AppendLine("join editions as e on m.edition_ID = e.ID ");
-            sbSql.AppendLine("where e.date_begin >= @begin and e.date_begin <= @end");
-            sbSql.AppendLine("union all ");
-            sbSql.AppendLine("select m.loser_id as ID from matches as m ");
-            sbSql.AppendLine("join editions as e on m.edition_ID = e.ID ");
-            sbSql.AppendLine("where e.date_begin >= @begin and e.date_begin <= @end");
-
-            var reader = SqlTools.ExecuteReader(sbSql.ToString(), new SqlParam("@begin", DbType.DateTime, begin), new SqlParam("@end", DbType.DateTime, end));
-            while (reader.Read())
-            {
-                idList.Add(reader.GetUint64("ID"));
-            }
-
-            return idList.Distinct().ToList();
-        }*/
-
         /// <summary>
-        /// Pour une année donnée, calcule les points ATP de chaque joueur pour chaque tournoi.
+        /// Pour une année donnée, calcule les statistiques d'un joueur pour chaque tournoi.
         /// </summary>
         /// <param name="year">L'année à traiter.</param>
         public void SetPlayerStatsForYearEditions(int year)
@@ -450,6 +422,96 @@ namespace TheTennisProject
 
                         sqlPrepared.Execute(sqlParamValues);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Pour une année donnée, calcule les points à la semaine du classement ATP.
+        /// </summary>
+        /// <remarks>Un recalcul doit être fait si le barème change dans la table SQL "points".</remarks>
+        /// <param name="year">L'année à traiter.</param>
+        public void SetAtpRankingForYear(int year)
+        {
+            SqlTools.ExecuteNonQuery("delete from atp_ranking where year = @year", new SqlParam("@year", DbType.UInt32, year));
+
+            List<Edition> editionsOfTheYear = Edition.GetByPeriod(new DateTime(year, 1, 1), new DateTime(year, 12, 31), null, null, false);
+
+            for (uint week = 1; week <= 53; week++)
+            {
+                List<ulong> playersofTheWeek = new List<ulong>();
+
+                List<Edition> editionsOfTheWeek = editionsOfTheYear.Where(_ => Tools.GetWeekNoFromDate(_.DateEnd) == week).ToList();
+                foreach (Edition edition in editionsOfTheWeek)
+                {
+                    if (!edition.StatisticsAreCompute)
+                    {
+                        CreateEditionsStatistics(edition);
+                    }
+                    playersofTheWeek.Concat(edition.Statistics.Select(_ => _.Player.ID));
+                }
+
+                playersofTheWeek = playersofTheWeek.Distinct().ToList();
+
+                foreach (ulong playerId in playersofTheWeek)
+                {
+                    uint pointsOfTheWeek = 0;
+                    // Note : on boucle sur les éditions mais ça n'a pas vraiment de sens
+                    // un joueur ne peut pas jouer plusieurs tournois dans une même semaine
+                    foreach (Edition edition in editionsOfTheWeek)
+                    {
+                        List<Edition.Stats> stats = edition.Statistics.Where(_ => _.Player.ID == playerId).ToList();
+                        if (stats.Any(_ => _.StatType == StatType.points))
+                        {
+                            pointsOfTheWeek += stats.First(_ => _.StatType == StatType.points).Value;
+                        }
+                    }
+
+                    // Charge les points de l'année précédente pour les semaines supérieures à celle courante
+                    uint pointsOfRollingYear = pointsOfTheWeek;
+                    string query = "select * from atp_ranking where year = @year and week_no > @week and player_ID = @player";
+                    using (DataTableReader reader = SqlTools.ExecuteReader(query,
+                        new SqlParam("@year", DbType.UInt32, year - 1),
+                        new SqlParam("@week", DbType.UInt32, week),
+                        new SqlParam("@player", DbType.UInt64, playerId)))
+                    {
+                        while (reader.Read())
+                        {
+                            pointsOfRollingYear += reader.GetUint32("week_points");
+                        }
+                    }
+
+                    // Charge les points de l'année en cours pour les semaines antérieures à celle courante
+                    uint pointsOfCalendarYear = pointsOfTheWeek;
+                    query = "select * from atp_ranking where year = @year and week_no < @week and player_ID = @player";
+                    using (DataTableReader reader = SqlTools.ExecuteReader(query,
+                        new SqlParam("@year", DbType.UInt32, year),
+                        new SqlParam("@week", DbType.UInt32, week),
+                        new SqlParam("@player", DbType.UInt64, playerId)))
+                    {
+                        while (reader.Read())
+                        {
+                            pointsOfCalendarYear += reader.GetUint32("week_points");
+                            pointsOfRollingYear += reader.GetUint32("week_points");
+                        }
+                    }
+
+                    query = SqlTools.BuildInsertQuery("atp_ranking", new Dictionary<string, string>
+                    {
+                        { "player_ID", "@player" },
+                        { "year", "@year" },
+                        { "week_no", "@week" },
+                        { "week_points", "@points" },
+                        { "year_calendar_points", "@calendar" },
+                        { "year_rolling_points", "@rolling" }
+                    });
+                    SqlTools.ExecuteNonQuery(query,
+                        new SqlParam("@player", DbType.UInt64, playerId),
+                        new SqlParam("@year", DbType.UInt32, year),
+                        new SqlParam("@week", DbType.UInt32, week),
+                        new SqlParam("@points", DbType.UInt32, pointsOfTheWeek),
+                        new SqlParam("@calendar", DbType.UInt32, pointsOfCalendarYear),
+                        new SqlParam("@rolling", DbType.UInt32, pointsOfRollingYear));
                 }
             }
         }
