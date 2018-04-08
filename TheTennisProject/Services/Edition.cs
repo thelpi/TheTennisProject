@@ -43,13 +43,37 @@ namespace TheTennisProject.Services
         /// <summary>
         /// Date approximée de fin de tournoi (toujours un dimanche).
         /// </summary>
+        /// <remarks>Une ancienne version purement mathématique est disponible dans le dépôt de version.</remarks>
         public DateTime DateEnd
         {
             get
             {
-                int requiredDays = Convert.ToInt32(Math.Ceiling(Convert.ToInt32(Math.Ceiling(Math.Log(DrawSize, 2))) * (decimal)1.5));
-                DateTime requiredDate = DateBegin.AddDays(requiredDays);
-                return requiredDate.DayOfWeek == DayOfWeek.Sunday ? requiredDate : requiredDate.AddDays(7 - (int)requiredDate.DayOfWeek);
+                int daysToAdd = 0;
+                switch (DateBegin.DayOfWeek)
+                {
+                    case DayOfWeek.Monday:
+                        daysToAdd = DrawSize > 64 ? 13 : 6;
+                        break;
+                    case DayOfWeek.Tuesday:
+                        daysToAdd = DrawSize > 64 ? 12 : 5;
+                        break;
+                    case DayOfWeek.Wednesday:
+                        daysToAdd = DrawSize > 32 ? 11 : 4;
+                        break;
+                    case DayOfWeek.Thursday:
+                        daysToAdd = DrawSize > 16 ? 10 : 3;
+                        break;
+                    case DayOfWeek.Friday:
+                        daysToAdd = DrawSize > 8 ? 9 : 2;
+                        break;
+                    case DayOfWeek.Saturday:
+                        daysToAdd = DrawSize > 4 ? 8 : 1;
+                        break;
+                    case DayOfWeek.Sunday:
+                        daysToAdd = DrawSize > 2 ? (DrawSize > 64 ? 14 : 7) : 0;
+                        break;
+                }
+                return DateBegin.AddDays(daysToAdd);
             }
         }
         /// <summary>
