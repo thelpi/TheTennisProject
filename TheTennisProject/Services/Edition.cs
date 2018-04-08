@@ -12,6 +12,11 @@ namespace TheTennisProject.Services
     {
         #region Champs et propriétés
 
+        /// <summary>
+        /// Nombre minimal de matchs pour qu'une édition de tournoi se déroule sur deux semaines.
+        /// </summary>
+        public const int TWO_WEEKS_MIN_MATCH_COUNT = 65;
+
         // statistiques relatives à tous les joueurs ayant participés au tournoi
         private List<Stats> _stats = new List<Stats>();
 
@@ -31,6 +36,10 @@ namespace TheTennisProject.Services
         /// Date exacte de début du tournoi.
         /// </summary>
         public DateTime DateBegin { get; private set; }
+        /// <summary>
+        /// Détermine si le tournoi se déroule sur deux semaines.
+        /// </summary>
+        public bool OnTwoWeeks { get; private set; }
         /// <summary>
         /// Statistiques relatives à tous les joueurs ayant participés au tournoi.
         /// </summary>
@@ -79,11 +88,12 @@ namespace TheTennisProject.Services
         /// <param name="year">Année.</param>
         /// <param name="drawSize">Nombre de joueurs inscrits.</param>
         /// <param name="dateBegin">Date de début.</param>
+        /// <param name="onTwoWeeks">Indique si l'édition se déroule sur deux semaines.</param>
         /// <exception cref="BaseService.NotUniqueIdException">L'identifiant n'est pas unique.</exception>
         /// <exception cref="ArgumentException">Une édition avec le même identifiant existe déjà.</exception>
         /// <exception cref="ArgumentException">Une édition du tournoi pour la même année existe déjà.</exception>
         /// <exception cref="ArgumentException">Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.</exception>
-        public Edition(uint id, uint tournamentId, uint year, ushort drawSize, DateTime dateBegin)
+        public Edition(uint id, uint tournamentId, uint year, ushort drawSize, DateTime dateBegin, bool onTwoWeeks)
             : base(id)
         {
             if (GetByYearAndTournament(tournamentId, year) != null)
@@ -101,6 +111,7 @@ namespace TheTennisProject.Services
             Year = year;
             DrawSize = drawSize;
             DateBegin = dateBegin;
+            OnTwoWeeks = onTwoWeeks;
         }
 
         /// <summary>
@@ -111,6 +122,7 @@ namespace TheTennisProject.Services
         /// <param name="year">Année.</param>
         /// <param name="drawSize">Nombre de joueurs inscrits.</param>
         /// <param name="dateBegin">Date de début.</param>
+        /// <param name="onTwoWeeks">Indique si l'édition se déroule sur deux semaines.</param>
         /// <param name="tournamentCity">Ville pour cette édition.</param>
         /// <param name="tournamentIndoor">Environnement pour cette édition.</param>
         /// <param name="tournamentLevel">Niveau pour cette édition.</param>
@@ -121,10 +133,10 @@ namespace TheTennisProject.Services
         /// <exception cref="ArgumentException">Une édition avec le même identifiant existe déjà.</exception>
         /// <exception cref="ArgumentException">Une édition du tournoi pour la même année existe déjà.</exception>
         /// <exception cref="ArgumentException">Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.</exception>
-        public Edition(uint id, uint tournamentID, uint year, ushort drawSize, DateTime dateBegin,
+        public Edition(uint id, uint tournamentID, uint year, ushort drawSize, DateTime dateBegin, bool onTwoWeeks,
             bool? tournamentIndoor , Level? tournamentLevel, string tournamentName,
             string tournamentCity, byte? tournamentSlotOrder, Surface? tournamentSurface)
-            : this(id, tournamentID, year, drawSize, dateBegin)
+            : this(id, tournamentID, year, drawSize, dateBegin, onTwoWeeks)
         {
             TournamentIsIndoor = tournamentIndoor.HasValue ? tournamentIndoor.Value : Tournament.IsIndoor;
             TournamentLevel = tournamentLevel.HasValue ? tournamentLevel.Value : Tournament.Level;

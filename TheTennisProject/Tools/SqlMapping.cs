@@ -167,7 +167,7 @@ namespace TheTennisProject
         // Procède à l'importation des éditions de tournoi.
         private void CreateEditions()
         {
-            string query = "select * from editions order by tournament_ID, year";
+            string query = "select *, (select count(*) from matches where edition_ID = editions.ID) as MatchCount from editions order by tournament_ID, year";
             using (DataTableReader reader = SqlTools.ExecuteReader(query))
             {
                 while (reader.Read())
@@ -177,6 +177,7 @@ namespace TheTennisProject
                         reader.GetUint32("year"),
                         reader.GetUint16("draw_size"),
                         reader.GetDateTime("date_begin"),
+                        reader.GetUint32("MatchCount") >= Edition.TWO_WEEKS_MIN_MATCH_COUNT,
                         reader.GetBoolean("is_indoor"),
                         (Level)reader.GetByte("level_ID"),
                         reader.GetString("name"),

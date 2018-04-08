@@ -48,7 +48,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBox Width="200" Height="25" Text="Recherche..." KeyUp="TextBox_KeyUp" Name="txtSearchPlayer" MouseEnter="txtSearchPlayer_MouseEnter" />
                             <Button ToolTip="Rechercher le joueur" Height="25" Width="25" Name="btnSearchPlayer" Margin="5, 0, 0, 0" Click="btnSearchPlayer_Click">
-                                <Image Source="../Resources/Icons/viewmag.png" Height="22" Width="22" />
+                                <Image Source="../Resources/viewmag.png" Height="22" Width="22" />
                             </Button>
                             <ComboBox Name="cbbAllPlayers" Height="25" Width="200" Margin="5, 0, 0, 0" SelectionChanged="cbbAllPlayers_SelectionChanged"  />
                         </StackPanel>
@@ -91,7 +91,7 @@
                                     <Label Grid.Row="0" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerNam" />
                                     <Label Grid.Row="1" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerDob" />
                                     <DockPanel Grid.Row="2" Grid.Column="1">
-                                        <Image Height="22" Width="22" DockPanel.Dock="Right" Name="imgToolTipNatHistory" Source="../Resources/Icons/help.png" />
+                                        <Image Height="22" Width="22" DockPanel.Dock="Right" Name="imgToolTipNatHistory" Source="../Resources/help.png" />
                                         <Label DockPanel.Dock="Left" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerNat" />
                                     </DockPanel>
                                     <Label Grid.Row="3" Grid.Column="1" HorizontalContentAlignment="Left" Height="25" Name="lblPlayerLat" />

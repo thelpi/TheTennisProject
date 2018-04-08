@@ -11,7 +11,7 @@ namespace TheTennisProject
     /// </summary>
     /// <remarks>
     /// Source des fichiers CSV : https://github.com\/JeffSackmann\/tennis_atp.
-    /// Suivre la procédure grossièrement décrite dans <see cref="Properties.Resources.procedure_manuelle_tournois"/> pour commencer.
+    /// Suivre la procédure grossièrement décrite dans <c>{root}/ExternalResources/procedure_manuelle_tournois.txt</c> pour commencer.
     /// </remarks>
     public class CsvFileIntegration
     {

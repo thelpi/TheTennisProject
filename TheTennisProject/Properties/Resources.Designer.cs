@@ -73,6 +73,16 @@ namespace TheTennisProject.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap help {
+            get {
+                object obj = ResourceManager.GetObject("help", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap player_pause {
             get {
                 object obj = ResourceManager.GetObject("player_pause", resourceCulture);
@@ -91,69 +101,12 @@ namespace TheTennisProject.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to dupliquer table année précédente
-        ///extraire les codes sans doublons sous Excel
-        ///vérifier les changements de tournoi sur wikipédia
-        ///
-        ///calculer les tournois de la liste qui ne match pas &quot;code_new&quot; de l&apos;année précédent
-        ///
-        ///SELECT * FROM `tournaments` join editions on tournaments.ID = editions.tournament_ID WHERE `original_code` in (
-        ///[liste_du_dessus]
-        ///) order by editions.year desc 
-        ///
-        ///récupérer les ID et préparer les transitions (exemple)
-        ///320 ---&gt; eastbourne
-        ///322 ---&gt; budapest
-        ///259 ---&gt; Nice
-        ///288 ---&gt; changeme [rest of string was truncated]&quot;;.
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
-        internal static string procedure_manuelle_tournois {
+        internal static System.Drawing.Bitmap viewmag {
             get {
-                return ResourceManager.GetString("procedure_manuelle_tournois", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SET SQL_MODE = &quot;NO_AUTO_VALUE_ON_ZERO&quot;;
-        ///SET time_zone = &quot;+00:00&quot;;
-        ///
-        ////*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-        ////*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-        ////*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-        ////*!40101 SET NAMES utf8mb4 */;
-        ///
-        ///CREATE DATABASE IF NOT EXISTS `the_tennis_project` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
-        ///USE `the_tennis_project`;
-        ///
-        ///CREATE TABLE `backup_matches` (
-        ///  `ID` bigint(20) UNSIGNED NOT NULL,
-        ///  `original_key` varc [rest of string was truncated]&quot;;.
-        /// </summary>
-        internal static string the_tennis_project_DB {
-            get {
-                return ResourceManager.GetString("the_tennis_project_DB", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SET SQL_MODE = &quot;NO_AUTO_VALUE_ON_ZERO&quot;;
-        ///SET time_zone = &quot;+00:00&quot;;
-        ///CREATE DATABASE IF NOT EXISTS `the_tennis_project` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
-        ///USE `the_tennis_project`;
-        ///
-        ///DROP TABLE IF EXISTS `editions`;
-        ///CREATE TABLE IF NOT EXISTS `editions` (
-        ///  `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
-        ///  `tourney_ID` int(10) unsigned NOT NULL,
-        ///  `year` int(10) unsigned NOT NULL,
-        ///  `draw_size` smallint(5) unsigned NOT NULL,
-        ///  `date_begin` datetime NOT NULL,
-        ///  PRIMARY KEY (`ID`),
-        ///  UNIQUE  [rest of string was truncated]&quot;;.
-        /// </summary>
-        internal static string the_tennis_project_DB_old {
-            get {
-                return ResourceManager.GetString("the_tennis_project_DB_old", resourceCulture);
+                object obj = ResourceManager.GetObject("viewmag", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
             }
         }
     }
