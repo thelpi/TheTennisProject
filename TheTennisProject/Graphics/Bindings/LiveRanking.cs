@@ -18,41 +18,15 @@ namespace TheTennisProject.Graphics.Bindings
         /// <summary>
         /// Classement du joueur.
         /// </summary>
-        public string Ranking { get; private set; }
+        public uint Ranking { get; private set; }
+        /// <summary>
+        /// Classement du joueur l'échéance précédente.
+        /// </summary>
+        public uint PreviousRanking { get; private set; }
         /// <summary>
         /// Nombre de points.
         /// </summary>
         public uint Points { get; private set; }
-        /// <summary>
-        /// Couleur du pinceau.
-        /// </summary>
-        public Brush BarBrush
-        {
-            get
-            {
-                switch (Ranking)
-                {
-                    case "01":
-                        return Brushes.Gold;
-                    case "02":
-                        return Brushes.Silver;
-                    case "03":
-                        return Brushes.Peru;
-                    default:
-                        return Brushes.Lavender;
-                }
-            }
-        }
-        /// <summary>
-        /// Taille de la barre.
-        /// </summary>
-        public double BarWidth
-        {
-            get
-            {
-                return 150 + ((Points * 300) / (double)18000);
-            }
-        }
 
         /// <summary>
         /// Constructeur.
@@ -60,11 +34,13 @@ namespace TheTennisProject.Graphics.Bindings
         /// <param name="playerName">Nom du joueur.</param>
         /// <param name="ranking">Classement.</param>
         /// <param name="points">Nombre de points.</param>
-        public LiveRanking(string playerName, uint points, string ranking)
+        /// <param name="previousRanking">Classement échéance précédente.</param>
+        public LiveRanking(string playerName, uint points, uint ranking, uint previousRanking)
         {
             PlayerName = playerName;
             Points = points;
             Ranking = ranking;
+            PreviousRanking = previousRanking;
         }
     }
 }

@@ -59,9 +59,12 @@ namespace TheTennisProject.Graphics
         // Date de début de l'animation
         private DateTime? _animationBeginDate = null;
 
-        // Liste observable du classement ATP
+        // Liste observable du classement ATP live
         private System.Collections.ObjectModel.ObservableCollection<Bindings.LiveRanking> _observableListAtpLive =
             new System.Collections.ObjectModel.ObservableCollection<Bindings.LiveRanking>();
+
+        // Liste sous-jacente utilisée pour "_observableListAtpLive"
+        private List<AtpRanking> _innerLiveAtpList = new List<AtpRanking>();
 
         #endregion
 
@@ -743,7 +746,18 @@ namespace TheTennisProject.Graphics
                 delegate(object sender, DoWorkEventArgs evt)
                 {
                     List<AtpRanking> baseList = AtpRanking.GetRankingAtDate((DateTime)evt.Argument, true, 20).ToList();
-                    evt.Result = baseList.Select(_ => new Bindings.LiveRanking(_.Player.Name, _.YearRollingPoints, (baseList.IndexOf(_) + 1).ToString().PadLeft(2, '0'))).ToList();
+                    evt.Result = baseList
+                                .Select(_ =>
+                                    new Bindings.LiveRanking(
+                                        _.Player.Name,
+                                        _.YearRollingPoints,
+                                        (uint)(baseList.IndexOf(_) + 1),
+                                        // TODO : faire plus simple
+                                        _innerLiveAtpList.Any(__ => __.Player == _.Player) ?
+                                            (uint)(_innerLiveAtpList.IndexOf(_innerLiveAtpList.First(__ => __.Player == _.Player))) : 0
+                                    ))
+                                .ToList();
+                    _innerLiveAtpList = baseList;
                 }, false, false,
                 delegate (object result)
                 {

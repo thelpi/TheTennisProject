@@ -259,4 +259,131 @@ namespace TheTennisProject
             throw new NotImplementedException();
         }
     }
+
+    /// <summary>
+    /// Conversion des positions de classement pour affichage (texte). 
+    /// </summary>
+    public class RankingTextConverter : IValueConverter
+    {
+        /// <summary>
+        /// Convertit une position dans un classement en son équivalent texte sur 2 caractères.
+        /// </summary>
+        /// <param name="value">La valeur numérique du classement.</param>
+        /// <param name="targetType">N/A.</param>
+        /// <param name="parameter">N/A.</param>
+        /// <param name="culture">N/A.</param>
+        /// <returns>Le texte associé au classement.</returns>
+        /// <exception cref="ArgumentException">L'argument est null ou d'un autre type que celui attendu.</exception>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null || value.GetType() != typeof(uint))
+            {
+                throw new ArgumentException("L'argument est null ou d'un autre type que celui attendu.", nameof(value));
+            }
+
+            return value.ToString().PadLeft(2, '0');
+        }
+
+        /// <summary>
+        /// Réciproque de conversion. Non implémentée.
+        /// </summary>
+        /// <param name="value">N/A.</param>
+        /// <param name="targetType">N/A.</param>
+        /// <param name="parameter">N/A.</param>
+        /// <param name="culture">N/A.</param>
+        /// <returns>N/A.</returns>
+        /// <exception cref="NotImplementedException">Cette fonction n'est pas implémentée.</exception>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Conversion des positions de classement pour affichage (graphique). 
+    /// </summary>
+    public class RankingToMedalConverter : IValueConverter
+    {
+        /// <summary>
+        /// Convertit une position dans un classement en un pinceau pour l'affichage en médaillon.
+        /// </summary>
+        /// <param name="value">La valeur numérique du classement.</param>
+        /// <param name="targetType">N/A.</param>
+        /// <param name="parameter">N/A.</param>
+        /// <param name="culture">N/A.</param>
+        /// <returns>Le pinceau associé au classement.</returns>
+        /// <exception cref="ArgumentException">L'argument est null ou d'un autre type que celui attendu.</exception>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null || value.GetType() != typeof(uint))
+            {
+                throw new ArgumentException("L'argument est null ou d'un autre type que celui attendu.", nameof(value));
+            }
+
+            switch ((uint)value)
+            {
+                case 1:
+                    return Brushes.Gold;
+                case 2:
+                    return Brushes.Silver;
+                case 3:
+                    return Brushes.Peru;
+                default:
+                    return Brushes.Lavender;
+            }
+        }
+
+        /// <summary>
+        /// Réciproque de conversion. Non implémentée.
+        /// </summary>
+        /// <param name="value">N/A.</param>
+        /// <param name="targetType">N/A.</param>
+        /// <param name="parameter">N/A.</param>
+        /// <param name="culture">N/A.</param>
+        /// <returns>N/A.</returns>
+        /// <exception cref="NotImplementedException">Cette fonction n'est pas implémentée.</exception>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
+    /// Conversion des points ATP pour affichage (largeur de canvas / panel).
+    /// </summary>
+    public class PointsToWidthConverter : IValueConverter
+    {
+        /// <summary>
+        /// Convertit des points ATP en un dimension (largeur) de panel ou canvas.
+        /// </summary>
+        /// <param name="value">La valeur numérique des points.</param>
+        /// <param name="targetType">N/A.</param>
+        /// <param name="parameter">N/A.</param>
+        /// <param name="culture">N/A.</param>
+        /// <returns>La largeur du panel/canvas associé aux points.</returns>
+        /// <exception cref="ArgumentException">L'argument est null ou d'un autre type que celui attendu.</exception>
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null || value.GetType() != typeof(uint))
+            {
+                throw new ArgumentException("L'argument est null ou d'un autre type que celui attendu.", nameof(value));
+            }
+
+            return 150 + ((((uint)value) * 300) / (double)18000);
+        }
+
+        /// <summary>
+        /// Réciproque de conversion. Non implémentée.
+        /// </summary>
+        /// <param name="value">N/A.</param>
+        /// <param name="targetType">N/A.</param>
+        /// <param name="parameter">N/A.</param>
+        /// <param name="culture">N/A.</param>
+        /// <returns>N/A.</returns>
+        /// <exception cref="NotImplementedException">Cette fonction n'est pas implémentée.</exception>
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
