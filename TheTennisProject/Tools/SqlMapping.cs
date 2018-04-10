@@ -79,13 +79,11 @@ namespace TheTennisProject
             {
                 CreateMatches(null, null);
             }
+            // TODO : trouver un meilleur moyen de faire ce chargement
+            CreateAtpRanking();
 
             // SetPlayerStatsForYearEditions(2017);
             // SetAtpRankingForYear(2017);
-            for (int i = 1968; i <= 2017; i++)
-            {
-                SetAtpRankingForYear(i);
-            }
         }
 
         // Calcule le nombre de données à charger.
@@ -566,6 +564,22 @@ namespace TheTennisProject
                         new SqlParam("@t_single", DbType.String, string.Join(";", tournamentsIdSingle)),
                         new SqlParam("@t_calendar", DbType.String, string.Join(";", tournamentsIdCalendar)),
                         new SqlParam("@t_rolling", DbType.String, string.Join(";", tournamentsIdRolling)));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Charge les classements ATP depuis la base de données.
+        /// </summary>
+        public void CreateAtpRanking()
+        {
+            string query = "select * from atp_ranking";
+            using (DataTableReader reader = SqlTools.ExecuteReader(query))
+            {
+                while (reader.Read())
+                {
+                    new AtpRanking(reader.GetUint64("player_ID"), reader.GetUint32("year"), reader.GetUint32("week_no"),
+                        reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"));
                 }
             }
         }

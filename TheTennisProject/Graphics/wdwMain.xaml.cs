@@ -48,7 +48,7 @@ namespace TheTennisProject.Graphics
         private System.Timers.Timer _animationTimer;
 
         // Délai entre les rafraichissements de l'animation "ATP Animation"
-        private double _animationRefreshTickTime = 20;
+        private double _animationRefreshTickTime = 100;
 
         // Date actuelle de l'animation (fin)
         private DateTime? _animationCurrentDate;
@@ -60,8 +60,8 @@ namespace TheTennisProject.Graphics
         private DateTime? _animationBeginDate = null;
 
         // Liste observable du classement ATP
-        private System.Collections.ObjectModel.ObservableCollection<Bindings.PlayerAtpRanking> _observableListAtpLive =
-            new System.Collections.ObjectModel.ObservableCollection<Bindings.PlayerAtpRanking>();
+        private System.Collections.ObjectModel.ObservableCollection<Bindings.LiveRanking> _observableListAtpLive =
+            new System.Collections.ObjectModel.ObservableCollection<Bindings.LiveRanking>();
 
         #endregion
 
@@ -728,44 +728,32 @@ namespace TheTennisProject.Graphics
 
             DateTime dateBegin;
             DateTime dateEnd = _animationCurrentDate.Value;
-            if (chkAptLiveCumuled.IsChecked == true)
+            if (yearStep)
             {
-                dateBegin = _animationBeginDate.Value;
+                dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+                   Tools.ATP_RANKING_DEBUT : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
             }
             else
             {
-                if (yearStep)
-                {
-                    dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
-                       Tools.ATP_RANKING_DEBUT : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
-                }
-                else
-                {
-                    dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
-                        _animationBeginDate.Value : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
-                }
+                dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+                    _animationBeginDate.Value : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
             }
 
             LoadBackgroundDatas(
-                RecomputeAtpRankingInner, false, false,
+                delegate(object sender, DoWorkEventArgs evt)
+                {
+                    List<AtpRanking> baseList = AtpRanking.GetRankingAtDate((DateTime)evt.Argument, true, 20).ToList();
+                    evt.Result = baseList.Select(_ => new Bindings.LiveRanking(_.Player.Name, _.YearRollingPoints, (baseList.IndexOf(_) + 1).ToString().PadLeft(2, '0'))).ToList();
+                }, false, false,
                 delegate (object result)
                 {
-                    List<Bindings.PlayerAtpRanking> typedResult = result as List<Bindings.PlayerAtpRanking>;
+                    List<Bindings.LiveRanking> typedResult = result as List<Bindings.LiveRanking>;
                     _observableListAtpLive.Clear();
                     typedResult.ForEach(_ => _observableListAtpLive.Add(_));
                     lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
                     _animationisComputing = false;
                 },
-                new object[]
-                {
-                    dateBegin,
-                    dateEnd,
-                    string.Empty,
-                    new List<Level>(),
-                    new List<Surface>(),
-                    false,
-                    null
-                },
+                dateEnd,
                 true
             );
         }

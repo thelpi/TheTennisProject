@@ -316,5 +316,15 @@ namespace TheTennisProject.Services
 
             return 0;
         }
+
+        /// <summary>
+        /// Récupère un joueur par son identifier.
+        /// </summary>
+        /// <param name="playerId">Identifiant du joueur.</param>
+        /// <returns>Le joueur. <c>Null</c> si non trouvé.</returns>
+        public static Player GetById(ulong playerId)
+        {
+            return GetByID<Player>(playerId);
+        }
     }
 }
