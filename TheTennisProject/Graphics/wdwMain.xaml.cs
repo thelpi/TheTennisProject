@@ -5,7 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using TheTennisProject.Properties;
 using TheTennisProject.Services;
 
@@ -59,12 +62,14 @@ namespace TheTennisProject.Graphics
         // Date de début de l'animation
         private DateTime? _animationBeginDate = null;
 
-        // Liste observable du classement ATP live
-        private System.Collections.ObjectModel.ObservableCollection<Bindings.LiveRanking> _observableListAtpLive =
-            new System.Collections.ObjectModel.ObservableCollection<Bindings.LiveRanking>();
+        // Liste TOP "ATP_LIVE_SIZE" du classement ATP Live
+        private List<Bindings.LiveRanking> _liveAtpCurrentTop20List = new List<Bindings.LiveRanking>();
 
-        // Liste sous-jacente utilisée pour "_observableListAtpLive"
-        private List<AtpRanking> _innerLiveAtpList = new List<AtpRanking>();
+        // Liste sous-jacente à "_liveAtpCurrentTop20List"
+        private List<AtpRanking> _innerLiveAtpCurrentTop20List = new List<AtpRanking>();
+
+        // Nombre de joueurs classés dans l'animation ATP Live
+        private const int ATP_LIVE_SIZE = 20;
 
         #endregion
 
@@ -702,7 +707,7 @@ namespace TheTennisProject.Graphics
                 };
             _animationCurrentDate = null;
             _animationBeginDate = null;
-            _observableListAtpLive.Clear();
+            cavAtpLiveList.Children.Clear();
         }
 
         // Construction du classement ATP "live" pour l'animation
@@ -745,7 +750,12 @@ namespace TheTennisProject.Graphics
             LoadBackgroundDatas(
                 delegate(object sender, DoWorkEventArgs evt)
                 {
-                    List<AtpRanking> baseList = AtpRanking.GetRankingAtDate((DateTime)evt.Argument, true, 20).ToList();
+                    List<AtpRanking> baseList = AtpRanking.GetRankingAtDate((DateTime)evt.Argument, true, ATP_LIVE_SIZE).ToList();
+                    if (baseList.Count == 0)
+                    {
+                        // Cas des années de 53 semaines sans classement la dernière semaine (pourquoi ?)
+                        baseList = _innerLiveAtpCurrentTop20List;
+                    }
                     evt.Result = baseList
                                 .Select(_ =>
                                     new Bindings.LiveRanking(
@@ -753,17 +763,15 @@ namespace TheTennisProject.Graphics
                                         _.YearRollingPoints,
                                         (uint)(baseList.IndexOf(_) + 1),
                                         // TODO : faire plus simple
-                                        _innerLiveAtpList.Any(__ => __.Player == _.Player) ?
-                                            (uint)(_innerLiveAtpList.IndexOf(_innerLiveAtpList.First(__ => __.Player == _.Player))) : 0
+                                        _innerLiveAtpCurrentTop20List.Any(__ => __.Player == _.Player) ?
+                                            (uint)(_innerLiveAtpCurrentTop20List.IndexOf(_innerLiveAtpCurrentTop20List.First(__ => __.Player == _.Player))) : ATP_LIVE_SIZE + 1
                                     ))
                                 .ToList();
-                    _innerLiveAtpList = baseList;
+                    _innerLiveAtpCurrentTop20List = baseList;
                 }, false, false,
                 delegate (object result)
                 {
-                    List<Bindings.LiveRanking> typedResult = result as List<Bindings.LiveRanking>;
-                    _observableListAtpLive.Clear();
-                    typedResult.ForEach(_ => _observableListAtpLive.Add(_));
+                    FillAtpLiveCanvas(result as List<Bindings.LiveRanking>);
                     lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
                     _animationisComputing = false;
                 },
@@ -772,12 +780,142 @@ namespace TheTennisProject.Graphics
             );
         }
 
+        // Remplit le canvas du classement ATP Live avec la liste d'éléments spécifiée
+        private void FillAtpLiveCanvas(List<Bindings.LiveRanking> bindingList)
+        {
+            cavAtpLiveList.Children.Clear();
+            int i = 0;
+            foreach (Bindings.LiveRanking binding in bindingList)
+            {
+                StackPanel stackPanel = new StackPanel
+                {
+                    Background = Brushes.Black,
+                    Height = 30,
+                    Orientation = Orientation.Horizontal,
+                    DataContext = binding
+                };
+
+                #region Détails du composant
+                // TODO : code imbuvable qui devrait provenir d'une "factory"
+
+                Label label = new Label
+                {
+                    Background = Brushes.Transparent,
+                    HorizontalAlignment = HorizontalAlignment.Right
+                };
+
+                Binding labelBinding = new Binding
+                {
+                    Path = new PropertyPath(nameof(binding.Points))
+                };
+                BindingOperations.SetBinding(label, ContentProperty, labelBinding);
+
+                DockPanel dockPanel = new DockPanel
+                {
+                    Height = 30,
+                    Background = new LinearGradientBrush
+                    {
+                        SpreadMethod = GradientSpreadMethod.Reflect,
+                        StartPoint = new Point(0, 1),
+                        GradientStops = new GradientStopCollection(new[]
+                        {
+                                new GradientStop(Colors.Black, 0),
+                                new GradientStop(Colors.OrangeRed, 0.75)
+                            })
+                    }
+                };
+
+                Binding dockPanelBinding = new Binding
+                {
+                    Path = new PropertyPath(nameof(binding.Points)),
+                    Converter = new PointsToWidthConverter()
+                };
+                BindingOperations.SetBinding(dockPanel, WidthProperty, dockPanelBinding);
+
+                dockPanel.Children.Add(label);
+
+                Label label2 = new Label
+                {
+                    Background = Brushes.Transparent,
+                    Foreground = Brushes.White
+                };
+
+                Panel.SetZIndex(label2, 1);
+
+                Binding label2Binding = new Binding
+                {
+                    Path = new PropertyPath(nameof(binding.PlayerName))
+                };
+                BindingOperations.SetBinding(label2, ContentProperty, label2Binding);
+
+                Canvas canvas = new Canvas
+                {
+                    Background = Brushes.Transparent,
+                    Margin = new Thickness(5, 0, 0, 0)
+                };
+
+                canvas.Children.Add(label2);
+                canvas.Children.Add(dockPanel);
+
+                Canvas canvas2 = new Canvas
+                {
+                    Background = Brushes.Transparent,
+                    Width = 25
+                };
+
+                Ellipse ellipse = new Ellipse
+                {
+                    Width = 25,
+                    Height = 25
+                };
+
+                Binding ellipseBinding = new Binding
+                {
+                    Path = new PropertyPath(nameof(binding.Ranking)),
+                    Converter = new RankingToMedalConverter()
+                };
+                BindingOperations.SetBinding(ellipse, Shape.FillProperty, ellipseBinding);
+
+                Canvas.SetLeft(ellipse, 2.5);
+                Canvas.SetTop(ellipse, 2.5);
+
+                Label label3 = new Label
+                {
+                    Background = Brushes.Transparent,
+                    FontWeight = FontWeights.Bold
+                };
+
+                Binding label3Binding = new Binding
+                {
+                    Path = new PropertyPath(nameof(binding.Ranking)),
+                    Converter = new RankingTextConverter()
+                };
+                BindingOperations.SetBinding(label3, ContentProperty, label3Binding);
+
+                Canvas.SetLeft(label3, 3);
+                Canvas.SetTop(label3, 1);
+
+                canvas2.Children.Add(ellipse);
+                canvas2.Children.Add(label3);
+
+                stackPanel.Children.Add(canvas2);
+                stackPanel.Children.Add(canvas);
+
+                #endregion
+
+                Canvas.SetTop(stackPanel, i == 0 ? 2.5 : (i * 35));
+                Canvas.SetLeft(stackPanel, 5);
+                cavAtpLiveList.Children.Add(stackPanel);
+                i++;
+            }
+        }
+
         // Initialise les composants graphiques de l'onglet "ATP animation"
         private void InitializeAtpAnimationTab()
         {
             _animationTimer = new System.Timers.Timer(_animationRefreshTickTime);
             _animationTimer.Elapsed += _animationTimer_Elapsed;
-            lstAtpLiveRanking.ItemsSource = _observableListAtpLive;
+            cavAtpLiveList.Children.Clear();
             btnAtpLiveStart.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play) };
             btnEraseAtpLive.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.button_cancel) };
             dtpAtpLiveDateBegin.SelectedDate = Tools.ATP_RANKING_DEBUT;

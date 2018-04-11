@@ -636,54 +636,7 @@
                         <Button Name="btnAtpLiveStart" Height="25" Width="25" VerticalAlignment="Center" Click="btnAtpLiveStart_Click" Margin="0, 0, 5, 0" />
                         <Label Name="lblAtpLivePeriod" VerticalAlignment="Center" />
                     </StackPanel>
-                    <!-- StackPanel aperçu -->
-                    <Border Visibility="Collapsed" BorderThickness="1" DockPanel.Dock="Top" BorderBrush="DarkGray">
-                        <StackPanel Background="Black" Height="30" Orientation="Horizontal">
-                            <Canvas Background="Transparent" Width="25">
-                                <Ellipse Canvas.Left="2.5" Canvas.Top="2.5" Width="25" Height="25" Fill="Gold"></Ellipse>
-                                <Label Background="Transparent" Content="01" Canvas.Left="3" FontWeight="Bold" Canvas.Top="1" />
-                            </Canvas>
-                            <Canvas Margin="5, 0, 0, 0" Background="Transparent">
-                                <Label Panel.ZIndex="1" Background="Transparent" Foreground="White" Content="Roger Federer" />
-                                <DockPanel Canvas.Top="2.5" Height="25" Width="400">
-                                    <DockPanel.Background>
-                                        <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                                            <GradientStop Color="Black" />
-                                            <GradientStop Color="OrangeRed" Offset="0.75" />
-                                        </LinearGradientBrush>
-                                    </DockPanel.Background>
-                                    <Label Background="Transparent" Foreground="Black" Content="12375" HorizontalAlignment="Right" />
-                                </DockPanel>
-                            </Canvas>
-                        </StackPanel>
-                    </Border>
-                    <!-- Fin du StackPanel aperçu -->
-                    <ListView DockPanel.Dock="Bottom" Name="lstAtpLiveRanking" AlternationCount="2" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="True">
-                        <ListView.ItemTemplate>
-                            <DataTemplate DataType="ListViewItem">
-                                <Border BorderThickness="1" DockPanel.Dock="Top" BorderBrush="DarkGray">
-                                    <StackPanel Background="Black" Height="30" Orientation="Horizontal">
-                                        <Canvas Background="Transparent" Width="25">
-                                            <Ellipse Canvas.Left="2.5" Canvas.Top="2.5" Width="25" Height="25" Fill="{Binding Path=Ranking, Converter={StaticResource rankingToMedalConverter}}"></Ellipse>
-                                            <Label Background="Transparent" Content="{Binding Path=Ranking, Converter={StaticResource rankingTextConverter}}" Canvas.Left="3" FontWeight="Bold" Canvas.Top="1" />
-                                        </Canvas>
-                                        <Canvas Margin="5, 0, 0, 0" Background="Transparent">
-                                            <Label Panel.ZIndex="1" Background="Transparent" Foreground="White" Content="{Binding Path=PlayerName}" />
-                                            <DockPanel Height="30" Width="{Binding Path=Points, Converter={StaticResource pointsToWidthConverter}}">
-                                                <DockPanel.Background>
-                                                    <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                                                        <GradientStop Color="Black" />
-                                                        <GradientStop Color="OrangeRed" Offset="0.75" />
-                                                    </LinearGradientBrush>
-                                                </DockPanel.Background>
-                                                <Label Background="Transparent" Foreground="Black" Content="{Binding Path=Points}" HorizontalAlignment="Right" />
-                                            </DockPanel>
-                                        </Canvas>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                    <Canvas DockPanel.Dock="Bottom" Name="cavAtpLiveList" />
                 </DockPanel>
             </TabItem>
         </TabControl>
