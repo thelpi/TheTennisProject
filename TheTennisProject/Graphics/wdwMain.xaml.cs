@@ -787,125 +787,14 @@ namespace TheTennisProject.Graphics
             int i = 0;
             foreach (Bindings.LiveRanking binding in bindingList)
             {
-                StackPanel stackPanel = new StackPanel
+                PlayernRanking prControl = new PlayernRanking
                 {
-                    Background = Brushes.Black,
-                    Height = 30,
-                    Orientation = Orientation.Horizontal,
                     DataContext = binding
                 };
 
-                #region Détails du composant
-                // TODO : code imbuvable qui devrait provenir d'une "factory"
-
-                Label label = new Label
-                {
-                    Background = Brushes.Transparent,
-                    HorizontalAlignment = HorizontalAlignment.Right
-                };
-
-                Binding labelBinding = new Binding
-                {
-                    Path = new PropertyPath(nameof(binding.Points))
-                };
-                BindingOperations.SetBinding(label, ContentProperty, labelBinding);
-
-                DockPanel dockPanel = new DockPanel
-                {
-                    Height = 30,
-                    Background = new LinearGradientBrush
-                    {
-                        SpreadMethod = GradientSpreadMethod.Reflect,
-                        StartPoint = new Point(0, 1),
-                        GradientStops = new GradientStopCollection(new[]
-                        {
-                                new GradientStop(Colors.Black, 0),
-                                new GradientStop(Colors.OrangeRed, 0.75)
-                            })
-                    }
-                };
-
-                Binding dockPanelBinding = new Binding
-                {
-                    Path = new PropertyPath(nameof(binding.Points)),
-                    Converter = new PointsToWidthConverter()
-                };
-                BindingOperations.SetBinding(dockPanel, WidthProperty, dockPanelBinding);
-
-                dockPanel.Children.Add(label);
-
-                Label label2 = new Label
-                {
-                    Background = Brushes.Transparent,
-                    Foreground = Brushes.White
-                };
-
-                Panel.SetZIndex(label2, 1);
-
-                Binding label2Binding = new Binding
-                {
-                    Path = new PropertyPath(nameof(binding.PlayerName))
-                };
-                BindingOperations.SetBinding(label2, ContentProperty, label2Binding);
-
-                Canvas canvas = new Canvas
-                {
-                    Background = Brushes.Transparent,
-                    Margin = new Thickness(5, 0, 0, 0)
-                };
-
-                canvas.Children.Add(label2);
-                canvas.Children.Add(dockPanel);
-
-                Canvas canvas2 = new Canvas
-                {
-                    Background = Brushes.Transparent,
-                    Width = 25
-                };
-
-                Ellipse ellipse = new Ellipse
-                {
-                    Width = 25,
-                    Height = 25
-                };
-
-                Binding ellipseBinding = new Binding
-                {
-                    Path = new PropertyPath(nameof(binding.Ranking)),
-                    Converter = new RankingToMedalConverter()
-                };
-                BindingOperations.SetBinding(ellipse, Shape.FillProperty, ellipseBinding);
-
-                Canvas.SetLeft(ellipse, 2.5);
-                Canvas.SetTop(ellipse, 2.5);
-
-                Label label3 = new Label
-                {
-                    Background = Brushes.Transparent,
-                    FontWeight = FontWeights.Bold
-                };
-
-                Binding label3Binding = new Binding
-                {
-                    Path = new PropertyPath(nameof(binding.Ranking)),
-                    Converter = new RankingTextConverter()
-                };
-                BindingOperations.SetBinding(label3, ContentProperty, label3Binding);
-
-                Canvas.SetLeft(label3, 3);
-                Canvas.SetTop(label3, 1);
-
-                canvas2.Children.Add(ellipse);
-                canvas2.Children.Add(label3);
-
-                stackPanel.Children.Add(canvas2);
-                stackPanel.Children.Add(canvas);
-
-                #endregion
-
-                Canvas.SetTop(stackPanel, i == 0 ? 2.5 : (i * 35));
-                Canvas.SetLeft(stackPanel, 5);
-                cavAtpLiveList.Children.Add(stackPanel);
+                Canvas.SetTop(prControl, i == 0 ? 2.5 : (i * 35));
+                Canvas.SetLeft(prControl, 5);
+                cavAtpLiveList.Children.Add(prControl);
                 i++;
             }
         }

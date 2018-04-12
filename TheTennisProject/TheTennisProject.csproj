@@ -80,6 +80,9 @@
     <Compile Include="Graphics\Bindings\LiveRanking.cs" />
     <Compile Include="Graphics\Bindings\PlayerAtpRanking.cs" />
     <Compile Include="Graphics\Bindings\TournamentPalmares.cs" />
+    <Compile Include="Graphics\PlayerRanking.xaml.cs">
+      <DependentUpon>PlayerRanking.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Graphics\wdwMain.xaml.cs">
       <DependentUpon>wdwMain.xaml</DependentUpon>
     </Compile>
@@ -187,6 +190,10 @@
     <AppDesigner Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Graphics\PlayerRanking.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Graphics\wdwMain.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
