@@ -51,7 +51,7 @@ namespace TheTennisProject.Graphics
         private System.Timers.Timer _animationTimer;
 
         // Délai entre les rafraichissements de l'animation "ATP Animation"
-        private double _animationRefreshTickTime = 100;
+        private double _animationRefreshTickTime = 250;
 
         // Date actuelle de l'animation (fin)
         private DateTime? _animationCurrentDate;
