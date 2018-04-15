@@ -5,10 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Shapes;
 using TheTennisProject.Properties;
 using TheTennisProject.Services;
 
@@ -51,13 +48,16 @@ namespace TheTennisProject.Graphics
         private System.Timers.Timer _animationTimer;
 
         // Délai entre les rafraichissements de l'animation "ATP Animation"
-        private double _animationRefreshTickTime = 250;
+        private double _animationRefreshTickTime = 10;
+
+        // temps attendu pour un joueur pour faire son animation de classement
+        private double _expectedTimeToMove = 200;
 
         // Date actuelle de l'animation (fin)
         private DateTime? _animationCurrentDate;
 
-        // Indique qu'un "tick" de l'animation est en cours de calcul
-        private volatile bool _animationisComputing;
+        // état des actions associées au tick du timer (computing, moving)
+        private volatile Tuple<bool?, bool?> _tickActionsStatuts = new Tuple<bool?, bool?>(null, false);
 
         // Date de début de l'animation
         private DateTime? _animationBeginDate = null;
@@ -660,11 +660,19 @@ namespace TheTennisProject.Graphics
 
         #endregion
 
-        #region Onglet "ATP Animation"
+        #region Onglet "Animation ATP"
 
         // Se produit au clic sur le bouton d'action
         private void btnAtpLiveStart_Click(object sender, RoutedEventArgs e)
         {
+            if (btnEraseAtpLive.Visibility != Visibility.Visible)
+            {
+                btnEraseAtpLive.Visibility = Visibility.Visible;
+            }
+            if (dtpAtpLiveDateBegin.Visibility == Visibility.Visible)
+            {
+                dtpAtpLiveDateBegin.Visibility = Visibility.Collapsed;
+            }
             if (!_animationIsRunning)
             {
                 _animationIsRunning = true;
@@ -673,18 +681,20 @@ namespace TheTennisProject.Graphics
                     {
                         Source = Tools.ImageSourceForBitmap(Properties.Resources.player_pause)
                     };
+                btnAtpLiveStart.ToolTip = "Mettre en pause l'animation.";
                 _animationTimer.Start();
             }
             else
             {
                 _animationTimer.Stop();
                 _animationIsRunning = false;
-                _animationisComputing = false;
+                _tickActionsStatuts = new Tuple<bool?, bool?>(null, false);
                 btnAtpLiveStart.Content =
                     new Image()
                     {
                         Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play)
                     };
+                btnAtpLiveStart.ToolTip = "Démarrer l'animation.";
             }
         }
 
@@ -699,7 +709,7 @@ namespace TheTennisProject.Graphics
         {
             _animationTimer.Stop();
             _animationIsRunning = false;
-            _animationisComputing = false;
+            _tickActionsStatuts = new Tuple<bool?, bool?>(null, false);
             btnAtpLiveStart.Content =
                 new Image()
                 {
@@ -708,44 +718,74 @@ namespace TheTennisProject.Graphics
             _animationCurrentDate = null;
             _animationBeginDate = null;
             cavAtpLiveList.Children.Clear();
+            btnEraseAtpLive.Visibility = Visibility.Collapsed;
+            dtpAtpLiveDateBegin.Visibility = Visibility.Visible;
         }
 
         // Construction du classement ATP "live" pour l'animation
         private void RecomputeAtpLiveRanking()
         {
-            if (_animationisComputing)
+            // ne fait rien si une action de computing est en cours
+            if (_tickActionsStatuts.Item1 ?? false)
             {
                 return;
             }
-            _animationisComputing = true;
+            // si l'action "computing" est achevé
+            if (_tickActionsStatuts.Item1.HasValue && !_tickActionsStatuts.Item1.Value)
+            {
+                if (_tickActionsStatuts.Item2.HasValue && !_tickActionsStatuts.Item2.Value)
+                {
+                    _tickActionsStatuts = new Tuple<bool?, bool?>(false, null);
+
+                    UIElement[] newOrder = new UIElement[cavAtpLiveList.Children.Count];
+                    cavAtpLiveList.Children.CopyTo(newOrder, 0);
+                    newOrder = newOrder.OrderBy(_ => ((_ as PlayernRanking).DataContext as Bindings.LiveRanking).Ranking).ToArray();
+                    int i = 0;
+                    foreach (UIElement elem in newOrder)
+                    {
+                        double expectedPosition = (i == 0 ? 2.5 : (i * 35));
+                        double currentPosition = Canvas.GetTop(elem);
+                        double expectedMoveByTick = (expectedPosition - currentPosition) / (_expectedTimeToMove / _animationRefreshTickTime);
+                        (elem as PlayernRanking).Tag = string.Format("{0}|{1}", expectedPosition, expectedMoveByTick);
+                        i++;
+                    }
+
+                    _tickActionsStatuts = new Tuple<bool?, bool?>(false, true);
+                }
+                else if (_tickActionsStatuts.Item2.HasValue && _tickActionsStatuts.Item2.Value)
+                {
+                    bool anyMoveDone = false;
+                    foreach (UIElement elem in cavAtpLiveList.Children)
+                    {
+                        string[] parts = (elem as PlayernRanking).Tag.ToString().Split('|');
+                        double expectedPosition = Convert.ToDouble(parts[0]);
+                        double currentPosition = Canvas.GetTop(elem);
+                        if (expectedPosition != currentPosition)
+                        {
+                            Canvas.SetTop(elem, currentPosition + Convert.ToDouble(parts[1]));
+                            anyMoveDone = true;
+                        }
+                    }
+                    if (!anyMoveDone)
+                    {
+                        _tickActionsStatuts = new Tuple<bool?, bool?>(null, false);
+                    }
+                }
+                return;
+            }
+            _tickActionsStatuts = new Tuple<bool?, bool?>(true, false);
 
             if (!_animationBeginDate.HasValue)
             {
                 _animationBeginDate = dtpAtpLiveDateBegin.SelectedDate;
             }
 
-            bool yearStep = cbbAtpLiveStep.SelectedIndex == 1;
-            if (!_animationCurrentDate.HasValue)
-            {
-                _animationCurrentDate = dtpAtpLiveDateBegin.SelectedDate.Value;
-            }
-            else
-            {
-                _animationCurrentDate = yearStep ? _animationCurrentDate.Value.AddDays(7 * 52) : _animationCurrentDate.Value.AddDays(7);
-            }
+            _animationCurrentDate = !_animationCurrentDate.HasValue ?
+                dtpAtpLiveDateBegin.SelectedDate.Value : _animationCurrentDate.Value.AddDays(7);
 
-            DateTime dateBegin;
-            DateTime dateEnd = _animationCurrentDate.Value;
-            if (yearStep)
-            {
-                dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
-                   Tools.ATP_RANKING_DEBUT : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
-            }
-            else
-            {
-                dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
+            DateTime dateBegin = _animationCurrentDate.Value.Year == Settings.Default.OpenEraYearBegin ?
                     _animationBeginDate.Value : _animationCurrentDate.Value.AddDays(7 * 52 * -1);
-            }
+            DateTime dateEnd = _animationCurrentDate.Value;
 
             LoadBackgroundDatas(
                 delegate(object sender, DoWorkEventArgs evt)
@@ -773,7 +813,7 @@ namespace TheTennisProject.Graphics
                 {
                     FillAtpLiveCanvas(result as List<Bindings.LiveRanking>);
                     lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
-                    _animationisComputing = false;
+                    _tickActionsStatuts = new Tuple<bool?, bool?>(false, false);
                 },
                 dateEnd,
                 true
@@ -783,9 +823,10 @@ namespace TheTennisProject.Graphics
         // Remplit le canvas du classement ATP Live avec la liste d'éléments spécifiée
         private void FillAtpLiveCanvas(List<Bindings.LiveRanking> bindingList)
         {
+            // tri dans le mauvais ordre
             cavAtpLiveList.Children.Clear();
             int i = 0;
-            foreach (Bindings.LiveRanking binding in bindingList)
+            foreach (Bindings.LiveRanking binding in bindingList.OrderBy(_ => _.PreviousRanking))
             {
                 PlayernRanking prControl = new PlayernRanking
                 {

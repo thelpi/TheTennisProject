@@ -623,17 +623,12 @@
                     </DockPanel>
                 </DockPanel>
             </TabItem>
-            <!-- Note : le contenu de cet onglet est rédigé en anglais -->
-            <TabItem Header="ATP Animation">
+            <TabItem Header="Animation ATP">
                 <DockPanel>
                     <StackPanel Height="30" DockPanel.Dock="Top" Orientation="Horizontal">
-                        <Button Name="btnEraseAtpLive" Click="btnEraseAtpLive_Click" Height="25" Width="25" VerticalAlignment="Center" Margin="0, 0, 5, 0" />
                         <DatePicker VerticalAlignment="Center" Height="25" SelectedDateFormat="Short" DisplayDateEnd="01/01/2100" FirstDayOfWeek="Sunday" Name="dtpAtpLiveDateBegin" Margin="0, 0, 5, 0" />
-                        <ComboBox Name="cbbAtpLiveStep" VerticalAlignment="Center" Margin="0, 0, 5, 0">
-                            <ComboBoxItem IsSelected="True">By week</ComboBoxItem>
-                            <ComboBoxItem>By year</ComboBoxItem>
-                        </ComboBox>
-                        <Button Name="btnAtpLiveStart" Height="25" Width="25" VerticalAlignment="Center" Click="btnAtpLiveStart_Click" Margin="0, 0, 5, 0" />
+                        <Button Name="btnAtpLiveStart" Height="25" Width="25" VerticalAlignment="Center" Click="btnAtpLiveStart_Click" Margin="0, 0, 5, 0" ToolTip="Démarrer l'animation." />
+                        <Button Name="btnEraseAtpLive" Click="btnEraseAtpLive_Click" Height="25" Width="25" VerticalAlignment="Center" Margin="0, 0, 5, 0" ToolTip="Arrêter l'animation." Visibility="Collapsed" />
                         <Label Name="lblAtpLivePeriod" VerticalAlignment="Center" />
                     </StackPanel>
                     <Canvas DockPanel.Dock="Bottom" Name="cavAtpLiveList" />
