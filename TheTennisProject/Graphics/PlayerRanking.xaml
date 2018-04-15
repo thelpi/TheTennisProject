@@ -11,22 +11,37 @@
         <localConverters:PointsToWidthConverter x:Key="pointsToWidthConverter" />
         <localConverters:RankingToMedalConverter x:Key="rankingToMedalConverter" />
     </UserControl.Resources>
-    <StackPanel Background="Black" Height="30" Orientation="Horizontal">
-        <Canvas Background="Transparent" Width="25">
-            <Ellipse Canvas.Left="2.5" Canvas.Top="2.5" Width="25" Height="25" Fill="{Binding Path=Ranking, Converter={StaticResource rankingToMedalConverter}, FallbackValue=Lavender}"></Ellipse>
-            <Label Background="Transparent" Content="{Binding Path=Ranking, Converter={StaticResource rankingTextConverter}, FallbackValue=01}" Canvas.Left="3" FontWeight="Bold" Canvas.Top="1" />
-        </Canvas>
-        <Canvas Margin="5, 0, 0, 0" Background="Transparent">
-            <Label Panel.ZIndex="1" Background="Transparent" Foreground="White" Content="{Binding Path=PlayerName, FallbackValue=Unknown%20player}" FontSize="12" VerticalAlignment="Center" />
-            <DockPanel Height="30" Width="{Binding Path=Points, Converter={StaticResource pointsToWidthConverter}, FallbackValue=300}">
-                <DockPanel.Background>
-                    <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                        <GradientStop Color="Black" />
-                        <GradientStop Color="OrangeRed" Offset="0.75" />
-                    </LinearGradientBrush>
-                </DockPanel.Background>
-                <Label Background="Transparent" Foreground="Black" Content="{Binding Path=Points, FallbackValue=8000}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" />
-            </DockPanel>
-        </Canvas>
-    </StackPanel>
+    <Border BorderThickness="3" CornerRadius="3">
+        <Border.BorderBrush>
+            <LinearGradientBrush StartPoint="0 0" EndPoint="1 1" >
+                <GradientStop Color="Navy" Offset="0" />
+                <GradientStop Color="Black" Offset="1" />
+            </LinearGradientBrush>
+        </Border.BorderBrush>
+        <StackPanel Background="Black" Height="30" Orientation="Horizontal">
+            <Canvas Background="Transparent" Width="25">
+                <Ellipse Canvas.Left="2.5" Canvas.Top="2.5" Width="25" Height="25">
+                    <Ellipse.Fill>
+                        <LinearGradientBrush>
+                            <GradientStop Color="White" Offset="0" />
+                            <GradientStop Color="{Binding Path=Ranking, Converter={StaticResource rankingToMedalConverter}, FallbackValue=Gold}" Offset="1" />
+                        </LinearGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Label Background="Transparent" Content="{Binding Path=Ranking, Converter={StaticResource rankingTextConverter}, FallbackValue=01}" Canvas.Left="3" FontWeight="Bold" Canvas.Top="1" />
+            </Canvas>
+            <Canvas Margin="5, 0, 0, 0" Background="Transparent" Width="{Binding Path=Points, Converter={StaticResource pointsToWidthConverter}, FallbackValue=300}">
+                <Label Panel.ZIndex="1" Background="Transparent" Foreground="White" Content="{Binding Path=PlayerName, FallbackValue=Unknown%20player}" FontSize="12" VerticalAlignment="Center" />
+                <DockPanel Height="30" Width="{Binding Path=Points, Converter={StaticResource pointsToWidthConverter}, FallbackValue=300}">
+                    <DockPanel.Background>
+                        <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
+                            <GradientStop Color="Black" />
+                            <GradientStop Color="OrangeRed" Offset="0.75" />
+                        </LinearGradientBrush>
+                    </DockPanel.Background>
+                    <Label Background="Transparent" Foreground="Black" Content="{Binding Path=Points, FallbackValue=8000}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" />
+                </DockPanel>
+            </Canvas>
+        </StackPanel>
+    </Border>
 </UserControl>

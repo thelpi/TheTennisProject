@@ -305,13 +305,13 @@ namespace TheTennisProject
     public class RankingToMedalConverter : IValueConverter
     {
         /// <summary>
-        /// Convertit une position dans un classement en un pinceau pour l'affichage en médaillon.
+        /// Convertit une position dans un classement en une couleur (<see cref="Colors"/>) pour l'affichage en médaillon.
         /// </summary>
         /// <param name="value">La valeur numérique du classement.</param>
         /// <param name="targetType">N/A.</param>
         /// <param name="parameter">N/A.</param>
         /// <param name="culture">N/A.</param>
-        /// <returns>Le pinceau associé au classement.</returns>
+        /// <returns>La couleur associée au classement.</returns>
         /// <exception cref="ArgumentException">L'argument est null ou d'un autre type que celui attendu.</exception>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
@@ -323,13 +323,13 @@ namespace TheTennisProject
             switch ((uint)value)
             {
                 case 1:
-                    return Brushes.Gold;
+                    return Colors.Gold;
                 case 2:
-                    return Brushes.Silver;
+                    return Colors.Silver;
                 case 3:
-                    return Brushes.Peru;
+                    return Colors.Peru;
                 default:
-                    return Brushes.Lavender;
+                    return Colors.Lavender;
             }
         }
 
