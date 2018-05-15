@@ -182,6 +182,7 @@ namespace TheTennisProject
                         reader.GetUint16("draw_size"),
                         reader.GetDateTime("date_begin"),
                         reader.GetUint32("MatchCount") >= Edition.TWO_WEEKS_MIN_MATCH_COUNT,
+                        reader.GetDateTime("date_end"),
                         reader.GetBoolean("is_indoor"),
                         (Level)reader.GetByte("level_ID"),
                         reader.GetString("name"),

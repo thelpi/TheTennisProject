@@ -41,41 +41,10 @@ namespace TheTennisProject.Services
         /// </summary>
         public bool OnTwoWeeks { get; private set; }
         /// <summary>
-        /// Date approximée de fin de tournoi (toujours un dimanche).
+        /// Date de fin de tournoi.
         /// </summary>
-        /// <remarks>Une ancienne version purement mathématique est disponible dans le dépôt de version.</remarks>
-        public DateTime DateEnd
-        {
-            get
-            {
-                int daysToAdd = 0;
-                switch (DateBegin.DayOfWeek)
-                {
-                    case DayOfWeek.Monday:
-                        daysToAdd = DrawSize > 64 ? 13 : 6;
-                        break;
-                    case DayOfWeek.Tuesday:
-                        daysToAdd = DrawSize > 64 ? 12 : 5;
-                        break;
-                    case DayOfWeek.Wednesday:
-                        daysToAdd = DrawSize > 32 ? 11 : 4;
-                        break;
-                    case DayOfWeek.Thursday:
-                        daysToAdd = DrawSize > 16 ? 10 : 3;
-                        break;
-                    case DayOfWeek.Friday:
-                        daysToAdd = DrawSize > 8 ? 9 : 2;
-                        break;
-                    case DayOfWeek.Saturday:
-                        daysToAdd = DrawSize > 4 ? 8 : 1;
-                        break;
-                    case DayOfWeek.Sunday:
-                        daysToAdd = DrawSize > 2 ? (DrawSize > 64 ? 14 : 7) : 0;
-                        break;
-                }
-                return DateBegin.AddDays(daysToAdd);
-            }
-        }
+        /// <remarks>Calculé approximativement lors de l'insertion en base de données.</remarks>
+        public DateTime DateEnd { get; private set; }
         /// <summary>
         /// Statistiques relatives à tous les joueurs ayant participés au tournoi.
         /// </summary>
@@ -125,11 +94,13 @@ namespace TheTennisProject.Services
         /// <param name="drawSize">Nombre de joueurs inscrits.</param>
         /// <param name="dateBegin">Date de début.</param>
         /// <param name="onTwoWeeks">Indique si l'édition se déroule sur deux semaines.</param>
+        /// <param name="dateEnd">Date de fin.</param>
         /// <exception cref="BaseService.NotUniqueIdException">L'identifiant n'est pas unique.</exception>
         /// <exception cref="ArgumentException">Une édition avec le même identifiant existe déjà.</exception>
         /// <exception cref="ArgumentException">Une édition du tournoi pour la même année existe déjà.</exception>
         /// <exception cref="ArgumentException">Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.</exception>
-        public Edition(uint id, uint tournamentId, uint year, ushort drawSize, DateTime dateBegin, bool onTwoWeeks)
+        /// <exception cref="ArgumentException">La date de fin doit être postérieure à la date de début.</exception>
+        public Edition(uint id, uint tournamentId, uint year, ushort drawSize, DateTime dateBegin, bool onTwoWeeks, DateTime dateEnd)
             : base(id)
         {
             if (GetByYearAndTournament(tournamentId, year) != null)
@@ -143,11 +114,17 @@ namespace TheTennisProject.Services
                 throw new ArgumentException("Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.", nameof(tournamentId));
             }
 
+            if (dateBegin > dateEnd)
+            {
+                throw new ArgumentException("La date de fin doit être postérieure à la date de début.", nameof(dateEnd));
+            }
+
             Tournament = tournament;
             Year = year;
             DrawSize = drawSize;
             DateBegin = dateBegin;
             OnTwoWeeks = onTwoWeeks;
+            DateBegin = dateEnd;
         }
 
         /// <summary>
@@ -159,6 +136,7 @@ namespace TheTennisProject.Services
         /// <param name="drawSize">Nombre de joueurs inscrits.</param>
         /// <param name="dateBegin">Date de début.</param>
         /// <param name="onTwoWeeks">Indique si l'édition se déroule sur deux semaines.</param>
+        /// <param name="dateEnd">Date de fin.</param>
         /// <param name="tournamentCity">Ville pour cette édition.</param>
         /// <param name="tournamentIndoor">Environnement pour cette édition.</param>
         /// <param name="tournamentLevel">Niveau pour cette édition.</param>
@@ -169,10 +147,11 @@ namespace TheTennisProject.Services
         /// <exception cref="ArgumentException">Une édition avec le même identifiant existe déjà.</exception>
         /// <exception cref="ArgumentException">Une édition du tournoi pour la même année existe déjà.</exception>
         /// <exception cref="ArgumentException">Le tournoi avec l'identifiant spécifié n'a pas pu être trouvé.</exception>
-        public Edition(uint id, uint tournamentID, uint year, ushort drawSize, DateTime dateBegin, bool onTwoWeeks,
+        /// <exception cref="ArgumentException">La date de fin doit être postérieure à la date de début.</exception>
+        public Edition(uint id, uint tournamentID, uint year, ushort drawSize, DateTime dateBegin, bool onTwoWeeks, DateTime dateEnd,
             bool? tournamentIndoor , Level? tournamentLevel, string tournamentName,
             string tournamentCity, byte? tournamentSlotOrder, Surface? tournamentSurface)
-            : this(id, tournamentID, year, drawSize, dateBegin, onTwoWeeks)
+            : this(id, tournamentID, year, drawSize, dateBegin, onTwoWeeks, dateEnd)
         {
             TournamentIsIndoor = tournamentIndoor.HasValue ? tournamentIndoor.Value : Tournament.IsIndoor;
             TournamentLevel = tournamentLevel.HasValue ? tournamentLevel.Value : Tournament.Level;

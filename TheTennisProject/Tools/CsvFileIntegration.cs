@@ -104,7 +104,8 @@ namespace TheTennisProject
                 { "tournament_ID", "@id" },
                 { "year", "@year" },
                 { "draw_size", "@drawsize" },
-                { "date_begin", "@date" },
+                { "date_begin", "@bdate" },
+                { "date_end", "@edate" },
                 { "surface_ID", "@surface" },
                 { "slot_order", "@slot" },
                 { "is_indoor", "@indoor" },
@@ -128,12 +129,17 @@ namespace TheTennisProject
                     {
                         if (reader.Read())
                         {
+                            DateTime dateBegin = Tools.FormatCsvDateTime(match["tourney_date"]);
+                            // Pas le vrai type SQL, mais san importance
+                            int drawSize = Convert.ToInt32(match["draw_size"]);
+
                             // TODO : système de préparation de la requête SQL
                             SqlTools.ExecuteNonQuery(insertEditionQuery,
                                 new SqlParam("@id", DbType.UInt32, reader.GetUint64("ID")),
                                 new SqlParam("@year", DbType.UInt32, _year),
-                                new SqlParam("@drawsize", DbType.UInt16, match["draw_size"]),
-                                new SqlParam("@date", DbType.DateTime, Tools.FormatCsvDateTime(match["tourney_date"]).ToString("yyyy-MM-dd")),
+                                new SqlParam("@drawsize", DbType.UInt16, drawSize),
+                                new SqlParam("@bdate", DbType.DateTime, dateBegin.ToString("yyyy-MM-dd")),
+                                new SqlParam("@edate", DbType.DateTime, ComputeEditionEndDate(dateBegin, drawSize).ToString("yyyy-MM-dd")),
                                 new SqlParam("@surface", DbType.Byte, reader.GetByte("surface_ID")),
                                 new SqlParam("@slot", DbType.Byte, reader.GetByteNull("slot_order")),
                                 new SqlParam("@indoor", DbType.Boolean, reader.GetByte("is_indoor") == 1),
@@ -517,6 +523,42 @@ namespace TheTennisProject
             }
 
             return tbInfoInt.ToString();
+        }
+
+        /// <summary>
+        /// Calcule la date de fin d'une édition de tournoi à partir de sa date de début et du nombre de matchs à jouer.
+        /// </summary>
+        /// <param name="dateBegin">Date de début.</param>
+        /// <param name="drawSize">Nombre de joueurs.</param>
+        /// <returns>Date de fin du tournoi.</returns>
+        private DateTime ComputeEditionEndDate(DateTime dateBegin, int drawSize)
+        {
+            int daysToAdd = 0;
+            switch (dateBegin.DayOfWeek)
+            {
+                case DayOfWeek.Monday:
+                    daysToAdd = drawSize > 64 ? 13 : 6;
+                    break;
+                case DayOfWeek.Tuesday:
+                    daysToAdd = drawSize > 64 ? 12 : 5;
+                    break;
+                case DayOfWeek.Wednesday:
+                    daysToAdd = drawSize > 32 ? 11 : 4;
+                    break;
+                case DayOfWeek.Thursday:
+                    daysToAdd = drawSize > 16 ? 10 : 3;
+                    break;
+                case DayOfWeek.Friday:
+                    daysToAdd = drawSize > 8 ? 9 : 2;
+                    break;
+                case DayOfWeek.Saturday:
+                    daysToAdd = drawSize > 4 ? 8 : 1;
+                    break;
+                case DayOfWeek.Sunday:
+                    daysToAdd = drawSize > 2 ? (drawSize > 64 ? 14 : 7) : 0;
+                    break;
+            }
+            return dateBegin.AddDays(daysToAdd);
         }
     }
 }

@@ -246,7 +246,6 @@
     <Resource Include="ExternalResources\notes.txt" />
     <Resource Include="ExternalResources\procedure_manuelle_tournois.txt" />
     <Content Include="ExternalResources\structure.sql" />
-    <Content Include="ExternalResources\the_tennis_project_DB.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
