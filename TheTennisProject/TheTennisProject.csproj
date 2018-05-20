@@ -89,6 +89,7 @@
     <Compile Include="Services\AtpRanking.cs" />
     <Compile Include="Services\BaseService.cs" />
     <Compile Include="Services\Country.cs" />
+    <Compile Include="Services\DataComparer.cs" />
     <Compile Include="Services\Edition.cs" />
     <Compile Include="Services\Entry.cs" />
     <Compile Include="Services\Level.cs" />

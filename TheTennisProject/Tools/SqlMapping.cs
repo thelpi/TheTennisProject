@@ -583,6 +583,7 @@ namespace TheTennisProject
                         reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"));
                 }
             }
+            AtpRanking.SetRankingAndStatistics();
         }
 
         /// <summary>

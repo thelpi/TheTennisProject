@@ -62,9 +62,6 @@ namespace TheTennisProject.Graphics
         // Date de début de l'animation
         private DateTime? _animationBeginDate = null;
 
-        // Liste TOP "ATP_LIVE_SIZE" du classement ATP Live
-        private List<Bindings.LiveRanking> _liveAtpCurrentTop20List = new List<Bindings.LiveRanking>();
-
         // Liste sous-jacente à "_liveAtpCurrentTop20List"
         private List<AtpRanking> _innerLiveAtpCurrentTop20List = new List<AtpRanking>();
 
@@ -791,27 +788,47 @@ namespace TheTennisProject.Graphics
                 delegate(object sender, DoWorkEventArgs evt)
                 {
                     List<AtpRanking> baseList = AtpRanking.GetRankingAtDate((DateTime)evt.Argument, true, ATP_LIVE_SIZE).ToList();
+                    List<AtpRanking> top1List = AtpRanking.GetCumulWeekTop1RankingAtDate((DateTime)evt.Argument, ATP_LIVE_SIZE).ToList();
+                    List<AtpRanking> top3List = AtpRanking.GetCumulWeekTop3RankingAtDate((DateTime)evt.Argument, ATP_LIVE_SIZE).ToList();
+                    List<AtpRanking> top10List = AtpRanking.GetCumulWeekTop10RankingAtDate((DateTime)evt.Argument, ATP_LIVE_SIZE).ToList();
+                    List<AtpRanking> top100List = AtpRanking.GetCumulWeekTop100RankingAtDate((DateTime)evt.Argument, ATP_LIVE_SIZE).ToList();
+
                     if (baseList.Count == 0)
                     {
                         // Cas des années de 53 semaines sans classement la dernière semaine (pourquoi ?)
                         baseList = _innerLiveAtpCurrentTop20List;
                     }
-                    evt.Result = baseList
-                                .Select(_ =>
-                                    new Bindings.LiveRanking(
-                                        _.Player.Name,
-                                        _.YearRollingPoints,
-                                        (uint)(baseList.IndexOf(_) + 1),
-                                        // TODO : faire plus simple
-                                        _innerLiveAtpCurrentTop20List.Any(__ => __.Player == _.Player) ?
-                                            (uint)(_innerLiveAtpCurrentTop20List.IndexOf(_innerLiveAtpCurrentTop20List.First(__ => __.Player == _.Player))) : ATP_LIVE_SIZE + 1
-                                    ))
-                                .ToList();
+
+                    List<Bindings.LiveRanking> mainResult
+                        = baseList
+                            .Select(_ =>
+                                new Bindings.LiveRanking(
+                                    _.Player.Name,
+                                    _.YearRollingPoints,
+                                    (uint)(baseList.IndexOf(_) + 1),
+                                    // TODO : faire plus simple
+                                    _innerLiveAtpCurrentTop20List.Any(__ => __.Player == _.Player) ?
+                                        (uint)(_innerLiveAtpCurrentTop20List.IndexOf(_innerLiveAtpCurrentTop20List.First(__ => __.Player == _.Player))) : ATP_LIVE_SIZE + 1
+                                ))
+                            .ToList();
+
+                    List<string> top1ToString = top1List.Select(_ => string.Format("{0} - {1}", _.Player.Name, _.CumulWeekTop1)).ToList();
+                    List<string> top3ToString = top3List.Select(_ => string.Format("{0} - {1}", _.Player.Name, _.CumulWeekTop3)).ToList();
+                    List<string> top10ToString = top10List.Select(_ => string.Format("{0} - {1}", _.Player.Name, _.CumulWeekTop10)).ToList();
+                    List<string> top100ToString = top100List.Select(_ => string.Format("{0} - {1}", _.Player.Name, _.CumulWeekTop100)).ToList();
+
+                    evt.Result = new object[] { mainResult, top1ToString, top3ToString, top10ToString, top100ToString };
+
                     _innerLiveAtpCurrentTop20List = baseList;
                 }, false, false,
                 delegate (object result)
                 {
-                    FillAtpLiveCanvas(result as List<Bindings.LiveRanking>);
+                    object[] sourceInfos = result as object[];
+                    FillAtpLiveCanvas(sourceInfos[0] as List<Bindings.LiveRanking>);
+                    lstAtpLive1stWeek.ItemsSource = sourceInfos[1] as List<string>;
+                    lstAtpLiveTop3Week.ItemsSource = sourceInfos[2] as List<string>;
+                    lstAtpLiveTop10Week.ItemsSource = sourceInfos[3] as List<string>;
+                    lstAtpLiveTop100Week.ItemsSource = sourceInfos[4] as List<string>;
                     lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
                     _tickActionsStatuts = new Tuple<bool?, bool?>(false, false);
                 },
