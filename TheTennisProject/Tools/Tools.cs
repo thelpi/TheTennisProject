@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -237,44 +238,20 @@ namespace TheTennisProject
         }
 
         /// <summary>
-        /// Calcule le premier lundi ISO d'une année donnée.
+        /// Calcule le numéro de semaine associée à une date donnée.
         /// </summary>
-        /// <param name="year">Année.</param>
-        /// <returns>Premier lundi.</returns>
-        public static DateTime GetMondayOfFirstWeekIsoOfYear(int year)
+        /// <remarks>La première semaine de l'année est celle incluant le premier jeudi de l'année.</remarks>
+        /// <param name="date">La date.</param>
+        /// <returns>Le numéro de semaine.</returns>
+        public static int GetWeekNoFromDate(DateTime date)
         {
-            DateTime firstDayOfYear = new DateTime(year, 1, 1);
-            if (firstDayOfYear.DayOfWeek == DayOfWeek.Friday)
+            DayOfWeek day = CultureInfo.InvariantCulture.Calendar.GetDayOfWeek(date);
+            if (day >= DayOfWeek.Monday && day <= DayOfWeek.Wednesday)
             {
-                firstDayOfYear = new DateTime(year, 1, 4);
+                date = date.AddDays(3);
             }
-            else if (firstDayOfYear.DayOfWeek == DayOfWeek.Saturday)
-            {
-                firstDayOfYear = new DateTime(year, 1, 3);
-            }
-            else if (firstDayOfYear.DayOfWeek == DayOfWeek.Sunday)
-            {
-                firstDayOfYear = new DateTime(year, 1, 2);
-            }
-            return firstDayOfYear;
-        }
-
-        /// <summary>
-        /// Calcule le numéro de semaine d'une date donnée.
-        /// </summary>
-        /// <param name="date">Date.</param>
-        /// <returns>Numéro de semaine.</returns>
-        public static uint GetWeekNoFromDate(DateTime date)
-        {
-            DateTime firstMonday = GetMondayOfFirstWeekIsoOfYear(date.Year);
-
-            if (date < firstMonday)
-            {
-                return 53;
-            }
-
-            // résultat de la division entière (modulo 7)
-            return (Convert.ToUInt32((date - firstMonday).TotalDays) / 7) + 1;
+            
+            return CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(date, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
         }
 
         /// <summary>

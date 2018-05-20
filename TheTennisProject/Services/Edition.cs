@@ -124,7 +124,7 @@ namespace TheTennisProject.Services
             DrawSize = drawSize;
             DateBegin = dateBegin;
             OnTwoWeeks = onTwoWeeks;
-            DateBegin = dateEnd;
+            DateEnd = dateEnd;
         }
 
         /// <summary>

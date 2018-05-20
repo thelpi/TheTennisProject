@@ -26,16 +26,6 @@ namespace TheTennisProject.Services
         /// </summary>
         public uint WeekNo { get; private set; }
         /// <summary>
-        /// Date correspondante à la combination <see cref="Year"/> / <see cref="WeekNo"/>.
-        /// </summary>
-        public DateTime Date
-        {
-            get
-            {
-                return Tools.GetMondayOfFirstWeekIsoOfYear((int)Year).AddDays(-1).AddDays(WeekNo * 7);
-            }
-        }
-        /// <summary>
         /// Nombre de points cette semaine.
         /// </summary>
         public uint WeekPoints { get; private set; }
@@ -47,7 +37,14 @@ namespace TheTennisProject.Services
         /// Nombre cumulé de points pour l'année glissante.
         /// </summary>
         public uint YearRollingPoints { get; private set; }
-
+        /// <summary>
+        /// Le classement du joueur à date pour l'année civile.
+        /// </summary>
+        public ushort CalendarRank { get; private set; }
+        /// <summary>
+        /// Le classement du joueur à date pour l'année glisante.
+        /// </summary>
+        public ushort RollingRank { get; private set; }
         /// <summary>
         /// Constructeur.
         /// </summary>
