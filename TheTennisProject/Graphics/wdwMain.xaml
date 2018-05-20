@@ -624,65 +624,15 @@
                 </DockPanel>
             </TabItem>
             <TabItem Header="Animation ATP">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="30" />
-                        <RowDefinition />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <StackPanel Height="30" Grid.ColumnSpan="3" Orientation="Horizontal">
+                <DockPanel>
+                    <StackPanel Height="30" DockPanel.Dock="Top" Orientation="Horizontal">
                         <DatePicker VerticalAlignment="Center" Height="25" SelectedDateFormat="Short" DisplayDateEnd="01/01/2100" FirstDayOfWeek="Sunday" Name="dtpAtpLiveDateBegin" Margin="0, 0, 5, 0" />
                         <Button Name="btnAtpLiveStart" Height="25" Width="25" VerticalAlignment="Center" Click="btnAtpLiveStart_Click" Margin="0, 0, 5, 0" ToolTip="Démarrer l'animation." />
                         <Button Name="btnEraseAtpLive" Click="btnEraseAtpLive_Click" Height="25" Width="25" VerticalAlignment="Center" Margin="0, 0, 5, 0" ToolTip="Arrêter l'animation." Visibility="Collapsed" />
                         <Label Name="lblAtpLivePeriod" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Canvas Grid.RowSpan="2" Grid.Row="1" Name="cavAtpLiveList" />
-                    <DockPanel Grid.Row="1" Grid.Column="1">
-                        <DockPanel.Background>
-                            <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                                <GradientStop Color="Black" />
-                                <GradientStop Color="OrangeRed" Offset="1.2" />
-                            </LinearGradientBrush>
-                        </DockPanel.Background>
-                        <Label DockPanel.Dock="Top" Content="1st place weeks" HorizontalAlignment="Stretch"  HorizontalContentAlignment="Center" Foreground="White" />
-                        <ListBox Margin="5" DockPanel.Dock="Bottom" Name="lstAtpLive1stWeek" />
-                    </DockPanel>
-                    <DockPanel Grid.Row="2" Grid.Column="1">
-                        <DockPanel.Background>
-                            <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                                <GradientStop Color="Black" />
-                                <GradientStop Color="OrangeRed" Offset="1.2" />
-                            </LinearGradientBrush>
-                        </DockPanel.Background>
-                        <Label DockPanel.Dock="Top" Content="Top 3 Weeks" HorizontalAlignment="Stretch"  HorizontalContentAlignment="Center" Foreground="White" />
-                        <ListBox Margin="5" DockPanel.Dock="Bottom" Name="lstAtpLiveTop3Week" />
-                    </DockPanel>
-                    <DockPanel Grid.Row="1" Grid.Column="2">
-                        <DockPanel.Background>
-                            <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                                <GradientStop Color="Black" />
-                                <GradientStop Color="OrangeRed" Offset="1.2" />
-                            </LinearGradientBrush>
-                        </DockPanel.Background>
-                        <Label DockPanel.Dock="Top" Content="Top 10 Weeks" HorizontalAlignment="Stretch"  HorizontalContentAlignment="Center" Foreground="White" />
-                        <ListBox Margin="5" DockPanel.Dock="Bottom" Name="lstAtpLiveTop10Week" />
-                    </DockPanel>
-                    <DockPanel Grid.Row="2" Grid.Column="2">
-                        <DockPanel.Background>
-                            <LinearGradientBrush SpreadMethod="Reflect" StartPoint="0 1">
-                                <GradientStop Color="Black" />
-                                <GradientStop Color="OrangeRed" Offset="1.2" />
-                            </LinearGradientBrush>
-                        </DockPanel.Background>
-                        <Label DockPanel.Dock="Top" Content="Top 100 Weeks" HorizontalAlignment="Stretch"  HorizontalContentAlignment="Center" Foreground="White" />
-                        <ListBox Margin="5" DockPanel.Dock="Bottom" Name="lstAtpLiveTop100Week" />
-                    </DockPanel>
-                </Grid>
+                    <Canvas DockPanel.Dock="Bottom" Name="cavAtpLiveList" />
+                </DockPanel>
             </TabItem>
         </TabControl>
     </DockPanel>
