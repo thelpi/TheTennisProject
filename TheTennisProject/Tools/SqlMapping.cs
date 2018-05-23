@@ -79,11 +79,19 @@ namespace TheTennisProject
             {
                 CreateMatches(null, null);
             }
+
+            // HACK (pour rattrapage)
+            for (int i = 1983; i <= 2017; i++)
+            {
+                SetAtpRankingForYear(i);
+            }
+
+            // X est l'année
+            // SetPlayerStatsForYearEditions(X);
+            // SetAtpRankingForYear(X);
+
             // TODO : trouver un meilleur moyen de faire ce chargement
             CreateAtpRanking();
-
-            // SetPlayerStatsForYearEditions(2017);
-            // SetAtpRankingForYear(2017);
         }
 
         // Calcule le nombre de données à charger.
@@ -125,7 +133,9 @@ namespace TheTennisProject
                         reader.GetString("nationality"),
                         isLeftHanded,
                         reader.GetUint32Null("height"),
-                        reader.GetDateTimeNull("date_of_birth"));
+                        reader.GetDateTimeNull("date_of_birth"),
+                        reader.GetDateTimeNull("date_begin"),
+                        reader.GetDateTimeNull("date_end"));
 
                     _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
                 }
@@ -443,22 +453,24 @@ namespace TheTennisProject
             SqlTools.ExecuteNonQuery(query, new SqlParam("@year", DbType.UInt32, year));
 
             List<Edition> editionsOfTheYear = Edition.GetByPeriod(new DateTime(year, 1, 1), new DateTime(year, 12, 31), null, null, false);
-            List<Player> playersOfTheYear = new List<Player>();
 
-            foreach (Edition edition in editionsOfTheYear)
+            foreach (Edition edition in editionsOfTheYear.Where(_ => !_.StatisticsAreCompute))
             {
-                if (!edition.StatisticsAreCompute)
-                {
-                    CreateEditionsStatistics(edition);
-                }
-                playersOfTheYear.AddRange(edition.Statistics.Select(_ => _.Player));
+                CreateEditionsStatistics(edition);
             }
+            
+            List<Player> potentialPlayersOfTheYear =
+                Player.GetList.Where(_ =>
+                    _.ID != Player.UNKNOWN_PLAYER_ID
+                    && _.DateBegin.HasValue
+                    && _.DateBegin.Value.Year <= year
+                    && _.DateEnd.HasValue
+                    && _.DateEnd.Value.Year + 1 >= year).ToList();
 
-            playersOfTheYear = playersOfTheYear.Distinct().ToList();
-
-            foreach (Player player in playersOfTheYear)
+            for (uint week = 1; week <= weeksCount; week++)
             {
-                for (uint week = 1; week <= weeksCount; week++)
+                List<Edition> editionsOfTheWeek = editionsOfTheYear.Where(_ => Tools.GetWeekNoFromDate(_.DateEnd) == week).ToList();
+                foreach (Player player in potentialPlayersOfTheYear)
                 {
                     uint pointsOfTheWeek = 0;
                     uint pointsOfCalendarYear = 0;
@@ -468,7 +480,6 @@ namespace TheTennisProject
                     List<ulong> tournamentsIdRolling = new List<ulong>();
 
                     // Récupère les points de la semaine en cours
-                    List<Edition> editionsOfTheWeek = editionsOfTheYear.Where(_ => Tools.GetWeekNoFromDate(_.DateEnd) == week).ToList();
                     bool? multipleEditionsInAWeek = null;
                     foreach (Edition edition in editionsOfTheWeek)
                     {
@@ -482,7 +493,7 @@ namespace TheTennisProject
                         }
                     }
                     // Pour info
-                    if (multipleEditionsInAWeek.HasValue && multipleEditionsInAWeek.Value && player.ID != Player.UNKNOWN_PLAYER_ID)
+                    if (multipleEditionsInAWeek.HasValue && multipleEditionsInAWeek.Value)
                     {
                         Tools.WriteLog(string.Format("Mutiple tournois joués par le joueur {0}/{1} dans la semaine {2} de l'année {3} ({4}).",
                             player.ID, player.Name, week, year, string.Join(",", tournamentsIdSingle)));
@@ -543,6 +554,12 @@ namespace TheTennisProject
                         }
                     }
 
+                    // si le joueur n'a joué aucun tournoi sur les 12 derniers mois, il n'est pas classé
+                    if (tournamentsIdRolling.Count == 0)
+                    {
+                        continue;
+                    }
+
                     query = SqlTools.BuildInsertQuery("atp_ranking", new Dictionary<string, string>
                     {
                         { "player_ID", "@player" },
@@ -565,6 +582,29 @@ namespace TheTennisProject
                         new SqlParam("@t_single", DbType.String, string.Join(";", tournamentsIdSingle)),
                         new SqlParam("@t_calendar", DbType.String, string.Join(";", tournamentsIdCalendar)),
                         new SqlParam("@t_rolling", DbType.String, string.Join(";", tournamentsIdRolling)));
+                }
+
+                // calcule les classements (civil et glissant)
+                // TODO : mieux à faire pour la rêgle en cas d'égalité
+                string[] types = new[] { "calendar", "rolling" };
+                foreach (string t in types)
+                {
+                    query = "select player_ID from atp_ranking where week_no = @week and year = @year order by year_" + t + "_points desc, length(tournaments_" + t + "_concat) - length(replace(tournaments_" + t + "_concat, ';', '')) desc";
+                    using (DataTableReader reader = SqlTools.ExecuteReader(query,
+                        new SqlParam("@year", DbType.UInt32, year),
+                        new SqlParam("@week", DbType.UInt32, week)))
+                    {
+                        int rank = 0;
+                        while (reader.Read())
+                        {
+                            ++rank;
+                            SqlTools.ExecuteNonQuery("update atp_ranking set year_" + t + "_ranking = @rank where player_ID = @player and week_no = @week and year = @year",
+                                new SqlParam("@year", DbType.UInt32, year),
+                                new SqlParam("@week", DbType.UInt32, week),
+                                new SqlParam("@player", DbType.UInt64, reader["player_ID"]),
+                                new SqlParam("@rank", DbType.UInt16, rank));
+                        }
+                    }
                 }
             }
         }

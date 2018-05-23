@@ -19,6 +19,7 @@ namespace TheTennisProject
             CsvFileIntegration.Default.IntegrateNewPlayers();
             CsvFileIntegration.Default.IntegrateMatchs();
             CsvFileIntegration.Default.SetUnfinishedMatchsDatas();
+            CsvFileIntegration.Default.SetPlayersActivityPeriod();
             // Dernière étape : décommenter, dans SqlMapping.Import(), la dernière ligne, et spécifier l'année
             */
             #endregion

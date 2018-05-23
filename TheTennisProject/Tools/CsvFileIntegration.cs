@@ -160,6 +160,7 @@ namespace TheTennisProject
         /// <summary>
         /// Crée les nouveaux joueurs issus du fichier fourni.
         /// Ne met pas à jour les informations sur les joueurs existants.
+        /// Ne met pas à jour les dates de début et fin d'activité.
         /// </summary>
         public void IntegrateNewPlayers()
         {
@@ -459,6 +460,51 @@ namespace TheTennisProject
 
                 SqlTools.ExecuteNonQuery(queryBuilder.ToString().Replace("_X", string.Concat("_", i)), sqlParam);
             }
+        }
+
+        /// <summary>
+        /// Met à jour les dates d'activité des joueurs.
+        /// A appeler après <see cref="IntegrateMatchs"/>.
+        /// </summary>
+        public void SetPlayersActivityPeriod()
+        {
+            System.Text.StringBuilder sbQuery = new System.Text.StringBuilder();
+            sbQuery.AppendLine("UPDATE players");
+            sbQuery.AppendLine("SET date_begin = (");
+            sbQuery.AppendLine("	SELECT subq.dat");
+            sbQuery.AppendLine("	FROM (");
+            sbQuery.AppendLine("		SELECT e.date_begin AS dat, m.loser_id AS p_id");
+            sbQuery.AppendLine("		FROM matches AS m JOIN editions AS e ON m.edition_id = e.id");
+            sbQuery.AppendLine("		UNION ALL");
+            sbQuery.AppendLine("		SELECT e.date_begin AS dat, m.winner_id AS p_id");
+            sbQuery.AppendLine("		FROM matches AS m JOIN editions AS e ON m.edition_id = e.id");
+            sbQuery.AppendLine("	) AS subq");
+            sbQuery.AppendLine("	WHERE subq.p_id = players.id");
+            sbQuery.AppendLine("	ORDER BY subq.dat ASC");
+            sbQuery.AppendLine("	LIMIT 0, 1");
+            sbQuery.AppendLine("), date_end = (");
+            sbQuery.AppendLine("	SELECT subq.dat");
+            sbQuery.AppendLine("	FROM (");
+            sbQuery.AppendLine("		SELECT e.date_end AS dat, m.loser_id AS p_id");
+            sbQuery.AppendLine("		FROM matches AS m JOIN editions AS e ON m.edition_id = e.id");
+            sbQuery.AppendLine("		UNION ALL");
+            sbQuery.AppendLine("		SELECT e.date_end AS dat, m.winner_id AS p_id");
+            sbQuery.AppendLine("		FROM matches AS m JOIN editions AS e ON m.edition_id = e.id");
+            sbQuery.AppendLine("	) AS subq");
+            sbQuery.AppendLine("	WHERE subq.p_id = players.id");
+            sbQuery.AppendLine("	ORDER BY subq.dat DESC");
+            sbQuery.AppendLine("	LIMIT 0, 1");
+            sbQuery.AppendLine(") WHERE id IN (");
+            sbQuery.AppendLine("	SELECT m2.winner_id");
+            sbQuery.AppendLine("	FROM matches AS m2 JOIN editions as e2 ON m2.edition_id = e2.id");
+            sbQuery.AppendLine("	WHERE e2.year = @year");
+            sbQuery.AppendLine("	UNION ALL");
+            sbQuery.AppendLine("	SELECT m2.loser_id");
+            sbQuery.AppendLine("	FROM matches AS m2 JOIN editions as e2 ON m2.edition_id = e2.id");
+            sbQuery.AppendLine("	WHERE e2.year = @year");
+            sbQuery.AppendLine(")");
+
+            SqlTools.ExecuteNonQuery(sbQuery.ToString(), new SqlParam("@year", DbType.UInt32, _year));
         }
 
         /// <summary>

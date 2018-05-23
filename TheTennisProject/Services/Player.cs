@@ -56,6 +56,14 @@ namespace TheTennisProject.Services
             }
         }
         /// <summary>
+        /// Date de début d'activité (du premier match).
+        /// </summary>
+        public DateTime? DateBegin { get; private set; }
+        /// <summary>
+        /// Date de fn d'activité (du dernier match).
+        /// </summary>
+        public DateTime? DateEnd { get; private set; }
+        /// <summary>
         /// Historique des précédentes nationalités sportives. La date spécifiée est celle de fin.
         /// <remarks>Les résultats sont triés par date croissante.</remarks>
         /// </summary>
@@ -89,13 +97,17 @@ namespace TheTennisProject.Services
         /// <param name="isLeftHanded">Détermine si le joueur est gaucher (vrai), droitier (faux) ou si l'information est inconnue (null).</param>
         /// <param name="height">Hauteur en centimètres (note : null sera remplacée par 0).</param>
         /// <param name="dateOfBirth">Date de naissance.</param>
+        /// <param name="dateBegin">Date de début d'activité / du premier match.</param>
+        /// <param name="dateEnd">Date de fin d'activité / du dernier match.</param>
         /// <exception cref="BaseService.NotUniqueIdException">L'identifiant n'est pas unique.</exception>
         /// <exception cref="ArgumentException">Un joueur avec le même identifiant existe déjà.</exception>
         /// <exception cref="ArgumentException">Le nom ne peut pas être vide.</exception>
         /// <exception cref="ArgumentException">La nationalité ne peut pas être vide.</exception>
         /// <exception cref="ArgumentException">La nationalité doit être un sigle de trois lettres.</exception>
         /// <exception cref="ArgumentException">L'argument spécifié n'est pas une date valide.</exception>
-        public Player(ulong id, string name, string nationality, bool? isLeftHanded, uint? height, DateTime? dateOfBirth)
+        /// <exception cref="ArgumentException">La date de fin d'activité doit être postérieure à la date de début d'activité.</exception>
+        public Player(ulong id, string name, string nationality, bool? isLeftHanded, uint? height,
+            DateTime? dateOfBirth, DateTime? dateBegin, DateTime? dateEnd)
             : base(id)
         {
             if (string.IsNullOrWhiteSpace(name))
@@ -114,11 +126,18 @@ namespace TheTennisProject.Services
                 throw new ArgumentException("La nationalité doit être un sigle de trois lettres.", nameof(nationality));
             }
 
+            if (dateEnd.HasValue && dateBegin.HasValue && dateEnd.Value < dateBegin.Value)
+            {
+                throw new ArgumentException("La date de fin d'activité doit être postérieure à la date de début d'activité.", nameof(dateEnd));
+            }
+
             DateOfBirth = dateOfBirth;
             Name = name;
             Nationality = nationality;
             IsLeftHanded = isLeftHanded;
             Height = height.HasValue ? height.Value : 0;
+            DateBegin = dateBegin;
+            DateEnd = dateEnd;
         }
 
         /// <summary>
