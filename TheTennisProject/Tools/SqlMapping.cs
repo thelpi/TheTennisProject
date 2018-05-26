@@ -576,6 +576,52 @@ namespace TheTennisProject
                         new SqlParam("@t_single", DbType.String, string.Join(";", tournamentsIdSingle)),
                         new SqlParam("@t_calendar", DbType.String, string.Join(";", tournamentsIdCalendar)),
                         new SqlParam("@t_rolling", DbType.String, string.Join(";", tournamentsIdRolling)));
+
+                    #region Calcul du ELO
+
+                    // ELO de la semaine précédente
+                    ushort currentElo =
+                        SqlTools.ExecuteScalar("SELECT elo FROM atp_ranking WHERE player_ID = @pid AND year = @year AND week = @week", (ushort)2500,
+                        new SqlParam("@pid", DbType.UInt64, player.ID),
+                        new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
+                        new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week));
+
+                    // Récupération des matchs du joueur pour les éditions de la semaine (les forfaits d'avant-match ne sont pas pris en compte)
+                    // Note : le ELO des adversaires est celui de la semaine précédente, pas celui "live" au cours de l'édition
+                    System.Text.StringBuilder sbQuery = new System.Text.StringBuilder();
+                    sbQuery.AppendLine("SELECT (");
+                    sbQuery.AppendLine("    SELECT level_ID FROM editions AS e WHERE e.ID = edition_ID");
+                    sbQuery.AppendLine(") AS level_ID, (");
+                    sbQuery.AppendLine("    SELECT elo FROM atp_ranking");
+                    sbQuery.AppendLine("    WHERE player_ID = IF(winner_ID = @pid, loser_ID, winner_ID) AND year = @year AND week = @week");
+                    sbQuery.AppendLine(") AS opponent_ELO, IF(winner_ID = @pid, 1, 0) AS is_winner FROM matches");
+                    sbQuery.AppendLine("WHERE walkover = 0 AND (loser_ID = @pid OR winner_ID = @pid) AND edition_ID IN ({0})");
+                    sbQuery.AppendLine("ORDER BY (SELECT date_begin FROM editions AS e where e.ID = edition_ID) ASC, IF(round_ID = 9, 1, round_ID) DESC");
+
+                    using (DataTableReader reader = SqlTools.ExecuteReader(
+                        string.Format(sbQuery.ToString(), string.Join(", ", editionsOfTheWeek.Select(_ => _.ID).ToList())),
+                        new SqlParam("@pid", DbType.UInt64, player.ID),
+                        new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
+                        new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week)))
+                    {
+                        while (reader.Read())
+                        {
+                            Tuple<double, double> elo = Tools.ComputeElo(
+                                currentElo,
+                                reader.GetUint16("opponent_ELO"),
+                                reader.GetBoolean("is_winner"),
+                                Tools.GetLevelEloCoeffK((Level)reader.GetByte("level_ID")));
+                            currentElo = Convert.ToUInt16(Math.Floor(elo.Item1));
+                        }
+                    }
+
+                    SqlTools.ExecuteNonQuery("UPDATE atp_ranking SET elo = @elo WHERE player_ID = @pid AND year = @year AND week = @week",
+                        new SqlParam("@pid", DbType.UInt64, player.ID),
+                        new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
+                        new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week),
+                        new SqlParam("@elo", DbType.UInt16, currentElo));
+
+                    #endregion
                 }
 
                 // calcule les classements (civil et glissant)

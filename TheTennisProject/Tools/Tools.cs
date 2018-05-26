@@ -284,6 +284,34 @@ namespace TheTennisProject
             return new Tuple<double, double>(d1, d2);
         }
 
+        /// <summary>
+        /// Rtourne, pour une valeur d'énumération <see cref="Level"/>, le coefficient "K" asssocié, nécessaire au calcul du ELO.
+        /// </summary>
+        /// <param name="l">La valeur d'énumération.</param>
+        /// <returns>Le coefficient associé.</returns>
+        public static double GetLevelEloCoeffK(Level l)
+        {
+            switch (l)
+            {
+                // TODO : à corriger en même temps que le barème de la table "points"
+                // ou à intégrer dans la table en question
+                case Level.atp_250:
+                    return 2.5;
+                case Level.atp_500:
+                    return 5;
+                case Level.grand_slam:
+                    return 20;
+                case Level.masters:
+                    return 15;
+                case Level.masters_1000:
+                    return 10;
+                case Level.olympics_games:
+                    return 7.5;
+                default:
+                    return 1;
+            }
+        }
+
         #region Traductions et attributs d'énumérations
 
         /// <summary>
