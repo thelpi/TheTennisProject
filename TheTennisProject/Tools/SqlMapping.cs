@@ -615,7 +615,7 @@ namespace TheTennisProject
                 {
                     new AtpRanking(reader.GetUint64("player_ID"), reader.GetUint32("year"), reader.GetUint32("week_no"),
                         reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"),
-                        reader.GetUint16("year_calendar_ranking"), reader.GetUint16("year_rolling_ranking"));
+                        reader.GetUint16("year_calendar_ranking"), reader.GetUint16("year_rolling_ranking"), reader.GetUint16("elo"));
                 }
             }
         }

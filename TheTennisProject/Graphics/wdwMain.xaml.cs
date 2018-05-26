@@ -805,22 +805,20 @@ namespace TheTennisProject.Graphics
                 delegate(object sender, DoWorkEventArgs evt)
                 {
                     List<AtpRanking> atpBaseList = AtpRanking.GetAtpRankingAtDate((DateTime)evt.Argument, true, ATP_LIVE_SIZE).ToList();
-                    List<Bindings.LiveRanking> atpBinding =
-                        atpBaseList
-                            .Select(_ => Bindings.LiveRanking.BuildFromAtp(_, _innerLiveAtpCurrentTopList, ATP_LIVE_SIZE + 1))
-                            .ToList();
-                    _innerLiveAtpCurrentTopList = atpBaseList;
-
                     List<AtpRanking> eloBaseList = AtpRanking.GetEloRankingAtDate((DateTime)evt.Argument, ATP_LIVE_SIZE).ToList();
-                    List<Bindings.LiveRanking> eloBinding =
-                        eloBaseList
-                            .Select(_ => Bindings.LiveRanking.BuildFromElo(_, eloBaseList.IndexOf(_), _innerLiveEloCurrentTopList, ATP_LIVE_SIZE + 1))
-                            .ToList();
-                    _innerLiveEloCurrentTopList = eloBaseList;
 
                     List<List<Bindings.LiveRanking>> allLists = new List<List<Bindings.LiveRanking>>();
-                    allLists.Add(atpBinding);
-                    allLists.Add(eloBinding);
+
+                    allLists.Add(atpBaseList
+                        .Select(_ => Bindings.LiveRanking.BuildFromAtp(_, _innerLiveAtpCurrentTopList, ATP_LIVE_SIZE + 1))
+                        .ToList());
+                    allLists.Add(eloBaseList
+                        .Select(_ => Bindings.LiveRanking.BuildFromElo(_, eloBaseList.IndexOf(_), _innerLiveEloCurrentTopList, ATP_LIVE_SIZE + 1))
+                        .ToList());
+
+                    _innerLiveAtpCurrentTopList = atpBaseList;
+                    _innerLiveEloCurrentTopList = eloBaseList;
+
                     evt.Result = allLists;
                 }, false, false,
                 delegate (object result)

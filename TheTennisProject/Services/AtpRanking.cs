@@ -61,8 +61,9 @@ namespace TheTennisProject.Services
         /// <param name="yearRollingPoints">Nombre cumulé de points pour l'année glissante.</param>
         /// <param name="yearCalendarRanking">Classement à date sur l'année civile.</param>
         /// <param name="yearRollingRanking">Classement à date sur l'année glissante.</param>
+        /// <param name="elo">Points ELO à date.</param>
         public AtpRanking(ulong playerId, uint year, uint weekNo, uint weekPoints, uint yearCalendarPoints, uint yearRollingPoints,
-            ushort yearCalendarRanking, ushort yearRollingRanking)
+            ushort yearCalendarRanking, ushort yearRollingRanking, ushort elo)
         {
             Player = Player.GetById(playerId);
             Year = year;
@@ -72,6 +73,7 @@ namespace TheTennisProject.Services
             RollingPoints = yearRollingPoints;
             CalendarRank = yearCalendarRanking;
             RollingRank = yearRollingRanking;
+            Elo = elo;
             _instances.Add(this);
         }
 
