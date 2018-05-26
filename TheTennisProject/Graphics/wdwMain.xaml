@@ -631,7 +631,20 @@
                         <Button Name="btnEraseAtpLive" Click="btnEraseAtpLive_Click" Height="25" Width="25" VerticalAlignment="Center" Margin="0, 0, 5, 0" ToolTip="Arrêter l'animation." Visibility="Collapsed" />
                         <Label Name="lblAtpLivePeriod" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Canvas DockPanel.Dock="Bottom" Name="cavAtpLiveList" />
+                    <Grid DockPanel.Dock="Bottom">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Grid.Row="0" Content="Classement ATP" />
+                        <Label Grid.Column="1" Grid.Row="0" Content="Classement ELO" />
+                        <Canvas Grid.Column="0" Grid.Row="1" Name="cavAtpLiveList" />
+                        <Canvas Grid.Column="1" Grid.Row="1" Name="cavEloLiveList" />
+                    </Grid>
                 </DockPanel>
             </TabItem>
         </TabControl>

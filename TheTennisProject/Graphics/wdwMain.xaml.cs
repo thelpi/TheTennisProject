@@ -62,8 +62,11 @@ namespace TheTennisProject.Graphics
         // Date de début de l'animation
         private DateTime? _animationBeginDate = null;
 
-        // Liste TOP "ATP_LIVE_SIZE" du classement ATP Live
+        // Liste (de dimension "ATP_LIVE_SIZE") du classement ATP Live
         private List<AtpRanking> _innerLiveAtpCurrentTopList = new List<AtpRanking>();
+
+        // Liste (de dimension "ATP_LIVE_SIZE") du classement ELO Live
+        private List<AtpRanking> _innerLiveEloCurrentTopList = new List<AtpRanking>();
 
         // Nombre de joueurs classés dans l'animation ATP Live
         private const int ATP_LIVE_SIZE = 20;
@@ -715,6 +718,7 @@ namespace TheTennisProject.Graphics
             _animationCurrentDate = null;
             _animationBeginDate = null;
             cavAtpLiveList.Children.Clear();
+            cavEloLiveList.Children.Clear();
             btnEraseAtpLive.Visibility = Visibility.Collapsed;
             dtpAtpLiveDateBegin.Visibility = Visibility.Visible;
         }
@@ -734,33 +738,46 @@ namespace TheTennisProject.Graphics
                 {
                     _tickActionsStatuts = new Tuple<bool?, bool?>(false, null);
 
-                    UIElement[] newOrder = new UIElement[cavAtpLiveList.Children.Count];
-                    cavAtpLiveList.Children.CopyTo(newOrder, 0);
-                    newOrder = newOrder.OrderBy(_ => ((_ as PlayernRanking).DataContext as Bindings.LiveRanking).Ranking).ToArray();
-                    int i = 0;
-                    foreach (UIElement elem in newOrder)
+                    UIElement[] newOrderAtp = new UIElement[cavAtpLiveList.Children.Count];
+                    cavAtpLiveList.Children.CopyTo(newOrderAtp, 0);
+                    newOrderAtp = newOrderAtp.OrderBy(_ => ((_ as PlayernRanking).DataContext as Bindings.LiveRanking).Ranking).ToArray();
+
+                    UIElement[] newOrderElo = new UIElement[cavEloLiveList.Children.Count];
+                    cavEloLiveList.Children.CopyTo(newOrderElo, 0);
+                    newOrderElo = newOrderElo.OrderBy(_ => ((_ as PlayernRanking).DataContext as Bindings.LiveRanking).Ranking).ToArray();
+
+                    // Suppose que "cavAtpLiveList" et "cavEloLiveList" font la même taille !
+                    for (int i = 0; i < newOrderAtp.Length; i++)
                     {
-                        double expectedPosition = (i == 0 ? 2.5 : (i * 35));
-                        double currentPosition = Canvas.GetTop(elem);
-                        double expectedMoveByTick = (expectedPosition - currentPosition) / (_expectedTimeToMove / _animationRefreshTickTime);
-                        (elem as PlayernRanking).Tag = string.Format("{0}|{1}", expectedPosition, expectedMoveByTick);
-                        i++;
+                        for (int j = 0; j < 2; j++)
+                        {
+                            UIElement elem = (j == 0 ? cavAtpLiveList : cavEloLiveList).Children[i];
+                            double expectedPosition = (i == 0 ? 2.5 : (i * 35));
+                            double currentPosition = Canvas.GetTop(elem);
+                            double expectedMoveByTick = (expectedPosition - currentPosition) / (_expectedTimeToMove / _animationRefreshTickTime);
+                            (elem as PlayernRanking).Tag = string.Format("{0}|{1}", expectedPosition, expectedMoveByTick);
+                        }
                     }
 
                     _tickActionsStatuts = new Tuple<bool?, bool?>(false, true);
                 }
                 else if (_tickActionsStatuts.Item2.HasValue && _tickActionsStatuts.Item2.Value)
                 {
+                    // Suppose que "cavAtpLiveList" et "cavEloLiveList" font la même taille !
                     bool anyMoveDone = false;
-                    foreach (UIElement elem in cavAtpLiveList.Children)
+                    for (int i = 0; i < cavAtpLiveList.Children.Count; i++)
                     {
-                        string[] parts = (elem as PlayernRanking).Tag.ToString().Split('|');
-                        double expectedPosition = Convert.ToDouble(parts[0]);
-                        double currentPosition = Canvas.GetTop(elem);
-                        if (expectedPosition != currentPosition)
+                        for (int j = 0; j < 2; j++)
                         {
-                            Canvas.SetTop(elem, currentPosition + Convert.ToDouble(parts[1]));
-                            anyMoveDone = true;
+                            UIElement elem = (j == 0 ? cavAtpLiveList : cavEloLiveList).Children[i];
+                            string[] parts = (elem as PlayernRanking).Tag.ToString().Split('|');
+                            double expectedPosition = Convert.ToDouble(parts[0]);
+                            double currentPosition = Canvas.GetTop(elem);
+                            if (expectedPosition != currentPosition)
+                            {
+                                Canvas.SetTop(elem, currentPosition + Convert.ToDouble(parts[1]));
+                                anyMoveDone = true;
+                            }
                         }
                     }
                     if (!anyMoveDone)
@@ -787,26 +804,29 @@ namespace TheTennisProject.Graphics
             LoadBackgroundDatas(
                 delegate(object sender, DoWorkEventArgs evt)
                 {
-                    List<AtpRanking> baseList = AtpRanking.GetRankingAtDate((DateTime)evt.Argument, true, ATP_LIVE_SIZE).ToList();
-                    if (baseList.Count == 0)
-                    {
-                        // Cas des années de 53 semaines sans classement la dernière semaine (pourquoi ?)
-                        baseList = _innerLiveAtpCurrentTopList;
-                    }
-                    evt.Result = baseList
-                                .Select(_ =>
-                                    new Bindings.LiveRanking(
-                                        _.Player.Name,
-                                        _.RollingPoints,
-                                        _.RollingRank,
-                                        _innerLiveAtpCurrentTopList.FirstOrDefault(__ => __.Player == _.Player)?.RollingRank ?? ATP_LIVE_SIZE + 1
-                                    ))
-                                .ToList();
-                    _innerLiveAtpCurrentTopList = baseList;
+                    List<AtpRanking> atpBaseList = AtpRanking.GetAtpRankingAtDate((DateTime)evt.Argument, true, ATP_LIVE_SIZE).ToList();
+                    List<Bindings.LiveRanking> atpBinding =
+                        atpBaseList
+                            .Select(_ => Bindings.LiveRanking.BuildFromAtp(_, _innerLiveAtpCurrentTopList, ATP_LIVE_SIZE + 1))
+                            .ToList();
+                    _innerLiveAtpCurrentTopList = atpBaseList;
+
+                    List<AtpRanking> eloBaseList = AtpRanking.GetEloRankingAtDate((DateTime)evt.Argument, ATP_LIVE_SIZE).ToList();
+                    List<Bindings.LiveRanking> eloBinding =
+                        eloBaseList
+                            .Select(_ => Bindings.LiveRanking.BuildFromElo(_, eloBaseList.IndexOf(_), _innerLiveEloCurrentTopList, ATP_LIVE_SIZE + 1))
+                            .ToList();
+                    _innerLiveEloCurrentTopList = eloBaseList;
+
+                    List<List<Bindings.LiveRanking>> allLists = new List<List<Bindings.LiveRanking>>();
+                    allLists.Add(atpBinding);
+                    allLists.Add(eloBinding);
+                    evt.Result = allLists;
                 }, false, false,
                 delegate (object result)
                 {
-                    FillAtpLiveCanvas(result as List<Bindings.LiveRanking>);
+                    FillLiveCanvas((result as List<List<Bindings.LiveRanking>>)[0], cavAtpLiveList);
+                    FillLiveCanvas((result as List<List<Bindings.LiveRanking>>)[1], cavEloLiveList);
                     lblAtpLivePeriod.Content = string.Format("{0} - {1}", dateBegin.ToString("dd/MM/yyyy"), dateEnd.ToString("dd/MM/yyyy"));
                     _tickActionsStatuts = new Tuple<bool?, bool?>(false, false);
                 },
@@ -815,11 +835,11 @@ namespace TheTennisProject.Graphics
             );
         }
 
-        // Remplit le canvas du classement ATP Live avec la liste d'éléments spécifiée
-        private void FillAtpLiveCanvas(List<Bindings.LiveRanking> bindingList)
+        // Remplit le canvas du classement ATP ou ELO Live avec la liste d'éléments spécifiée
+        private void FillLiveCanvas(List<Bindings.LiveRanking> bindingList, Canvas canvasToFill)
         {
             // tri dans le mauvais ordre
-            cavAtpLiveList.Children.Clear();
+            canvasToFill.Children.Clear();
             int i = 0;
             foreach (Bindings.LiveRanking binding in bindingList.OrderBy(_ => _.PreviousRanking))
             {
@@ -830,7 +850,7 @@ namespace TheTennisProject.Graphics
 
                 Canvas.SetTop(prControl, i == 0 ? 2.5 : (i * 35));
                 Canvas.SetLeft(prControl, 5);
-                cavAtpLiveList.Children.Add(prControl);
+                canvasToFill.Children.Add(prControl);
                 i++;
             }
         }
@@ -841,6 +861,7 @@ namespace TheTennisProject.Graphics
             _animationTimer = new System.Timers.Timer(_animationRefreshTickTime);
             _animationTimer.Elapsed += _animationTimer_Elapsed;
             cavAtpLiveList.Children.Clear();
+            cavEloLiveList.Children.Clear();
             btnAtpLiveStart.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.player_play) };
             btnEraseAtpLive.Content = new Image() { Source = Tools.ImageSourceForBitmap(Properties.Resources.button_cancel) };
             dtpAtpLiveDateBegin.SelectedDate = Tools.ATP_RANKING_DEBUT;
