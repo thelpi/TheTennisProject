@@ -30,13 +30,13 @@ namespace TheTennisProject.Services
         /// </summary>
         public uint WeekPoints { get; private set; }
         /// <summary>
-        /// Nombre cumulé de points pour cette année civile.
+        /// Nombre cumulé de points à date pour l'année civile.
         /// </summary>
-        public uint YearCalendarPoints { get; private set; }
+        public uint CalendarPoints { get; private set; }
         /// <summary>
-        /// Nombre cumulé de points pour l'année glissante.
+        /// Nombre cumulé de points à date pour l'année glissante.
         /// </summary>
-        public uint YearRollingPoints { get; private set; }
+        public uint RollingPoints { get; private set; }
         /// <summary>
         /// Le classement du joueur à date pour l'année civile.
         /// </summary>
@@ -54,14 +54,19 @@ namespace TheTennisProject.Services
         /// <param name="weekPoints">Nombre de points cette semaine.</param>
         /// <param name="yearCalendarPoints">Nombre cumulé de points pour cette année civile.</param>
         /// <param name="yearRollingPoints">Nombre cumulé de points pour l'année glissante.</param>
-        public AtpRanking(ulong playerId, uint year, uint weekNo, uint weekPoints, uint yearCalendarPoints, uint yearRollingPoints)
+        /// <param name="yearCalendarRanking">Classement à date sur l'année civile.</param>
+        /// <param name="yearRollingRanking">Classement à date sur l'année glissante.</param>
+        public AtpRanking(ulong playerId, uint year, uint weekNo, uint weekPoints, uint yearCalendarPoints, uint yearRollingPoints,
+            ushort yearCalendarRanking, ushort yearRollingRanking)
         {
             Player = Player.GetById(playerId);
             Year = year;
             WeekNo = weekNo;
             WeekPoints = weekPoints;
-            YearCalendarPoints = yearCalendarPoints;
-            YearRollingPoints = yearRollingPoints;
+            CalendarPoints = yearCalendarPoints;
+            RollingPoints = yearRollingPoints;
+            CalendarRank = yearCalendarRanking;
+            RollingRank = yearRollingRanking;
             _instances.Add(this);
         }
 
@@ -76,7 +81,7 @@ namespace TheTennisProject.Services
         {
             return _instances
                         .Where(_ => _.WeekNo == Tools.GetWeekNoFromDate(date) && _.Year == date.Year)
-                        .OrderByDescending(_ => (rollingSort ? _.YearRollingPoints : _.YearCalendarPoints))
+                        .OrderBy(_ => (rollingSort ? _.RollingRank : _.CalendarRank))
                         .Take(limit)
                         .ToList()
                         .AsReadOnly();

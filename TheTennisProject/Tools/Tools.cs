@@ -268,6 +268,22 @@ namespace TheTennisProject
             return endOfWeekDays.Contains(firstDayOfNextYear.DayOfWeek);
         }
 
+        /// <summary>
+        /// Calcule un nouveau classement ELO après un match.
+        /// </summary>
+        /// <param name="eloBeforeP1">Classement ELO précédent du premier joueur.</param>
+        /// <param name="eloBeforeP2">Classement ELO précédent du second joueur.</param>
+        /// <param name="winnerP1"><c>Vrai</c> si le premier joueur gagne ; <c>Faux</c> sinon</param>
+        /// <param name="coeffK">Coefficient indiquant l'importance du match.</param>
+        /// <returns>Un tuple de données contenant les nouveaux classement ELO des deux joueurs.</returns>
+        public static Tuple<double, double> ComputeElo(double eloBeforeP1, double eloBeforeP2, bool winnerP1, double coeffK)
+        {
+            double d1 = eloBeforeP1 + coeffK * ((winnerP1 ? 1 : 0) - (1 / (1 + Math.Pow(10, -(eloBeforeP1 - eloBeforeP2) / 400))));
+            double d2 = eloBeforeP2 + coeffK * ((winnerP1 ? 0 : 1) - (1 / (1 + Math.Pow(10, -(eloBeforeP2 - eloBeforeP1) / 400))));
+
+            return new Tuple<double, double>(d1, d2);
+        }
+
         #region Traductions et attributs d'énumérations
 
         /// <summary>

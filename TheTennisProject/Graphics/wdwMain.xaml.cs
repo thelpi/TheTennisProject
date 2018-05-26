@@ -63,10 +63,7 @@ namespace TheTennisProject.Graphics
         private DateTime? _animationBeginDate = null;
 
         // Liste TOP "ATP_LIVE_SIZE" du classement ATP Live
-        private List<Bindings.LiveRanking> _liveAtpCurrentTop20List = new List<Bindings.LiveRanking>();
-
-        // Liste sous-jacente à "_liveAtpCurrentTop20List"
-        private List<AtpRanking> _innerLiveAtpCurrentTop20List = new List<AtpRanking>();
+        private List<AtpRanking> _innerLiveAtpCurrentTopList = new List<AtpRanking>();
 
         // Nombre de joueurs classés dans l'animation ATP Live
         private const int ATP_LIVE_SIZE = 20;
@@ -794,20 +791,18 @@ namespace TheTennisProject.Graphics
                     if (baseList.Count == 0)
                     {
                         // Cas des années de 53 semaines sans classement la dernière semaine (pourquoi ?)
-                        baseList = _innerLiveAtpCurrentTop20List;
+                        baseList = _innerLiveAtpCurrentTopList;
                     }
                     evt.Result = baseList
                                 .Select(_ =>
                                     new Bindings.LiveRanking(
                                         _.Player.Name,
-                                        _.YearRollingPoints,
-                                        (uint)(baseList.IndexOf(_) + 1),
-                                        // TODO : faire plus simple
-                                        _innerLiveAtpCurrentTop20List.Any(__ => __.Player == _.Player) ?
-                                            (uint)(_innerLiveAtpCurrentTop20List.IndexOf(_innerLiveAtpCurrentTop20List.First(__ => __.Player == _.Player))) : ATP_LIVE_SIZE + 1
+                                        _.RollingPoints,
+                                        _.RollingRank,
+                                        _innerLiveAtpCurrentTopList.FirstOrDefault(__ => __.Player == _.Player)?.RollingRank ?? ATP_LIVE_SIZE + 1
                                     ))
                                 .ToList();
-                    _innerLiveAtpCurrentTop20List = baseList;
+                    _innerLiveAtpCurrentTopList = baseList;
                 }, false, false,
                 delegate (object result)
                 {

@@ -80,12 +80,6 @@ namespace TheTennisProject
                 CreateMatches(null, null);
             }
 
-            // HACK (pour rattrapage)
-            for (int i = 1983; i <= 2017; i++)
-            {
-                SetAtpRankingForYear(i);
-            }
-
             // X est l'année
             // SetPlayerStatsForYearEditions(X);
             // SetAtpRankingForYear(X);
@@ -620,7 +614,8 @@ namespace TheTennisProject
                 while (reader.Read())
                 {
                     new AtpRanking(reader.GetUint64("player_ID"), reader.GetUint32("year"), reader.GetUint32("week_no"),
-                        reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"));
+                        reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"),
+                        reader.GetUint16("year_calendar_ranking"), reader.GetUint16("year_rolling_ranking"));
                 }
             }
         }
