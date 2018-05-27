@@ -400,7 +400,7 @@ namespace TheTennisProject.Services
             IEnumerable<Match> baseList = GetList<Match>().Where(_ => _.Edition.ID == editionID);
             if (!baseList.Any())
             {
-                baseList = SqlMapping.Instance.CreateMatches(editionID, null);
+                baseList = SqlMapping.Instance.LoadMatches(editionID, null);
             }
 
             return baseList.FirstOrDefault(_ => _.MatchNum == matchNum);
@@ -416,7 +416,7 @@ namespace TheTennisProject.Services
             IEnumerable<Match> baseList = GetList<Match>().Where(_ => _.Edition.ID == editionID);
             if (!baseList.Any())
             {
-                baseList = SqlMapping.Instance.CreateMatches(editionID, null);
+                baseList = SqlMapping.Instance.LoadMatches(editionID, null);
             }
 
             return baseList.ToList().AsReadOnly();
@@ -463,7 +463,7 @@ namespace TheTennisProject.Services
             IEnumerable<Match> baseList = GetList<Match>().Where(item => item.Winner.ID == playerID || item.Loser.ID == playerID);
             if (!baseList.Any())
             {
-                baseList = SqlMapping.Instance.CreateMatches(null, playerID);
+                baseList = SqlMapping.Instance.LoadMatches(null, playerID);
             }
 
             return baseList.ToList().AsReadOnly();

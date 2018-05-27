@@ -28,6 +28,10 @@ namespace TheTennisProject
         /// </summary>
         public const int DEFAULT_YEAR = 1900;
         /// <summary>
+        /// Points ELO par défaut.
+        /// </summary>
+        public const ushort DEFAULT_ELO = 2500;
+        /// <summary>
         /// Date du premier classement ATP possible.
         /// </summary>
         public static readonly DateTime ATP_RANKING_DEBUT = new DateTime((int)Settings.Default.OpenEraYearBegin, 1, 1);

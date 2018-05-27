@@ -186,7 +186,7 @@ namespace TheTennisProject.Graphics
                 // TODO : peut être pas la meilleure solution.
                 if (!edition.StatisticsAreCompute)
                 {
-                    SqlMapping.Instance.CreateEditionsStatistics(edition);
+                    SqlMapping.Instance.LoadEditionsStatistics(edition);
                 }
                 foreach (Edition.Stats stat in edition.Statistics)
                 {

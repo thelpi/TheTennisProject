@@ -70,22 +70,22 @@ namespace TheTennisProject
             }
 
             ComputeDataCount();
-            CreatePlayers();
-            CreatePointsAtpScale();
-            CreateTournaments();
-            CreateCountries();
-            CreateEditions();
+            LoadPlayers();
+            LoadPointsAtpScale();
+            LoadTournaments();
+            LoadCountries();
+            LoadEditions();
             if (Properties.Settings.Default.ComputeMatchesWhileLoading)
             {
-                CreateMatches(null, null);
+                LoadMatches(null, null);
             }
 
             // X est l'année
-            // SetPlayerStatsForYearEditions(X);
-            // SetAtpRankingForYear(X);
+            // ComputePlayerStatsForYearEditions(X);
+            // ComputeAtpRankingForYear(X);
 
             // TODO : trouver un meilleur moyen de faire ce chargement
-            CreateAtpRanking();
+            LoadAtpRanking();
         }
 
         // Calcule le nombre de données à charger.
@@ -106,8 +106,10 @@ namespace TheTennisProject
             }
         }
 
+        #region Méthodes de chargement de données depuis la base
+
         // Procède à l'importation des joueurs.
-        private void CreatePlayers()
+        private void LoadPlayers()
         {
             string query = "select * from players";
             using (DataTableReader reader = SqlTools.ExecuteReader(query))
@@ -149,7 +151,7 @@ namespace TheTennisProject
         }
 
         // Procède à l'importation des tournois
-        private void CreateTournaments()
+        private void LoadTournaments()
         {
             // Importation des tournois.
             string query = "select * from tournaments";
@@ -173,7 +175,7 @@ namespace TheTennisProject
         }
 
         // Procède à l'importation des éditions de tournoi.
-        private void CreateEditions()
+        private void LoadEditions()
         {
             string query = "select *, (select count(*) from matches where edition_ID = editions.ID) as MatchCount from editions order by tournament_ID, year";
             using (DataTableReader reader = SqlTools.ExecuteReader(query))
@@ -196,10 +198,63 @@ namespace TheTennisProject
 
                     if (Properties.Settings.Default.ComputeStatisticsWhileLoading)
                     {
-                        CreateEditionsStatistics(edition);
+                        LoadEditionsStatistics(edition);
                     }
 
                     _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
+                }
+            }
+        }
+
+        // Procède à l'importation du barème des points ATP.
+        private void LoadPointsAtpScale()
+        {
+            foreach (object level in Enum.GetValues(typeof(Level)))
+            {
+                string query = string.Format("select * from points where level_ID = {0}", (int)level);
+                using (DataTableReader reader = SqlTools.ExecuteReader(query))
+                {
+                    while (reader.Read())
+                    {
+                        new PointsAtpScale((Level)level,
+                             (Round)reader.GetByte("round_ID"),
+                             reader.GetUint32("points_w"),
+                             reader.GetUint32("points_l"),
+                             reader.GetUint32("points_l_ex"),
+                             reader.GetBoolean("is_cumuled"));
+
+                        _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
+                    }
+                }
+            }
+        }
+
+        // procède à l'importation des pays.
+        private void LoadCountries()
+        {
+            string sqlQuery = "select * from countries";
+            using (DataTableReader reader = SqlTools.ExecuteReader(sqlQuery))
+            {
+                while (reader.Read())
+                {
+                    new Country(reader.GetString("code_ISO2"), reader.GetString("code_ISO3"), reader.GetString("name_EN"), reader.GetString("name_FR"));
+
+                    _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
+                }
+            }
+        }
+
+        // procède à l'importation des classements ATP (et ELO)
+        private void LoadAtpRanking()
+        {
+            string query = "select * from atp_ranking";
+            using (DataTableReader reader = SqlTools.ExecuteReader(query))
+            {
+                while (reader.Read())
+                {
+                    new AtpRanking(reader.GetUint64("player_ID"), reader.GetUint32("year"), reader.GetUint32("week_no"),
+                        reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"),
+                        reader.GetUint16("year_calendar_ranking"), reader.GetUint16("year_rolling_ranking"), reader.GetUint16("elo"));
                 }
             }
         }
@@ -209,7 +264,7 @@ namespace TheTennisProject
         /// </summary>
         /// <param name="edition">Edition de tournoi.</param>
         /// <exception cref="ArgumentNullException">L'argument <paramref name="edition"/> est <c>Null</c>.</exception>
-        public void CreateEditionsStatistics(Edition edition)
+        public void LoadEditionsStatistics(Edition edition)
         {
             if (edition == null)
             {
@@ -252,7 +307,7 @@ namespace TheTennisProject
         /// <param name="editionId">Identifiant d'édition de tournoi.</param>
         /// <param name="playerId">Identifiant de joueur.</param>
         /// <returns>Les matchs importés.</returns>
-        public IEnumerable<Match> CreateMatches(uint? editionId, ulong? playerId)
+        public IEnumerable<Match> LoadMatches(uint? editionId, ulong? playerId)
         {
             List<Match> matchs = new List<Match>();
 
@@ -313,49 +368,13 @@ namespace TheTennisProject
             return matchs;
         }
 
-        // Procède à l'importation du barème des points ATP.
-        private void CreatePointsAtpScale()
-        {
-            foreach (object level in Enum.GetValues(typeof(Level)))
-            {
-                string query = string.Format("select * from points where level_ID = {0}", (int)level);
-                using (DataTableReader reader = SqlTools.ExecuteReader(query))
-                {
-                    while (reader.Read())
-                    {
-                        new PointsAtpScale((Level)level,
-                             (Round)reader.GetByte("round_ID"),
-                             reader.GetUint32("points_w"),
-                             reader.GetUint32("points_l"),
-                             reader.GetUint32("points_l_ex"),
-                             reader.GetBoolean("is_cumuled"));
-
-                        _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
-                    }
-                }
-            }
-        }
-
-        // procède à l'importation des pays.
-        private void CreateCountries()
-        {
-            string sqlQuery = "select * from countries";
-            using (DataTableReader reader = SqlTools.ExecuteReader(sqlQuery))
-            {
-                while (reader.Read())
-                {
-                    new Country(reader.GetString("code_ISO2"), reader.GetString("code_ISO3"), reader.GetString("name_EN"), reader.GetString("name_FR"));
-
-                    _dataLoadingProgressEventHandler?.Invoke(new DataLoadingProgressEvent(100 * ++_currentDataCount / _totalDataCount));
-                }
-            }
-        }
+        #endregion
 
         /// <summary>
         /// Pour une année donnée, calcule les statistiques d'un joueur pour chaque tournoi.
         /// </summary>
         /// <param name="year">L'année à traiter.</param>
-        public void SetPlayerStatsForYearEditions(int year)
+        public void ComputePlayerStatsForYearEditions(int year)
         {
             SqlTools.ExecuteNonQuery("delete from edition_player_stats where edition_ID in (select ID from editions where year = @year)",
                 new SqlParam("@year", DbType.UInt32, year));
@@ -438,7 +457,7 @@ namespace TheTennisProject
         /// </summary>
         /// <remarks>Un recalcul doit être fait si le barème change dans la table SQL "points".</remarks>
         /// <param name="year">L'année à traiter.</param>
-        public void SetAtpRankingForYear(int year)
+        public void ComputeAtpRankingForYear(int year)
         {
             int weeksCount = Tools.YearIs53Week(year) ? 53 : 52;
             bool previousYearIs53 = Tools.YearIs53Week(year - 1);
@@ -450,7 +469,7 @@ namespace TheTennisProject
 
             foreach (Edition edition in editionsOfTheYear.Where(_ => !_.StatisticsAreCompute))
             {
-                CreateEditionsStatistics(edition);
+                LoadEditionsStatistics(edition);
             }
             
             List<Player> potentialPlayersOfTheYear =
@@ -535,7 +554,7 @@ namespace TheTennisProject
                                     {
                                         if (!lastYearEdition.StatisticsAreCompute)
                                         {
-                                            CreateEditionsStatistics(lastYearEdition);
+                                            LoadEditionsStatistics(lastYearEdition);
                                         }
                                         IEnumerable<Edition.Stats> lastyearEditionPointsStats =
                                             lastYearEdition.Statistics.Where(_ => _.Player == player && _.StatType == StatType.points);
@@ -577,51 +596,7 @@ namespace TheTennisProject
                         new SqlParam("@t_calendar", DbType.String, string.Join(";", tournamentsIdCalendar)),
                         new SqlParam("@t_rolling", DbType.String, string.Join(";", tournamentsIdRolling)));
 
-                    #region Calcul du ELO
-
-                    // ELO de la semaine précédente
-                    ushort currentElo =
-                        SqlTools.ExecuteScalar("SELECT elo FROM atp_ranking WHERE player_ID = @pid AND year = @year AND week = @week", (ushort)2500,
-                        new SqlParam("@pid", DbType.UInt64, player.ID),
-                        new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
-                        new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week));
-
-                    // Récupération des matchs du joueur pour les éditions de la semaine (les forfaits d'avant-match ne sont pas pris en compte)
-                    // Note : le ELO des adversaires est celui de la semaine précédente, pas celui "live" au cours de l'édition
-                    System.Text.StringBuilder sbQuery = new System.Text.StringBuilder();
-                    sbQuery.AppendLine("SELECT (");
-                    sbQuery.AppendLine("    SELECT level_ID FROM editions AS e WHERE e.ID = edition_ID");
-                    sbQuery.AppendLine(") AS level_ID, (");
-                    sbQuery.AppendLine("    SELECT elo FROM atp_ranking");
-                    sbQuery.AppendLine("    WHERE player_ID = IF(winner_ID = @pid, loser_ID, winner_ID) AND year = @year AND week = @week");
-                    sbQuery.AppendLine(") AS opponent_ELO, IF(winner_ID = @pid, 1, 0) AS is_winner FROM matches");
-                    sbQuery.AppendLine("WHERE walkover = 0 AND (loser_ID = @pid OR winner_ID = @pid) AND edition_ID IN ({0})");
-                    sbQuery.AppendLine("ORDER BY (SELECT date_begin FROM editions AS e where e.ID = edition_ID) ASC, IF(round_ID = 9, 1, round_ID) DESC");
-
-                    using (DataTableReader reader = SqlTools.ExecuteReader(
-                        string.Format(sbQuery.ToString(), string.Join(", ", editionsOfTheWeek.Select(_ => _.ID).ToList())),
-                        new SqlParam("@pid", DbType.UInt64, player.ID),
-                        new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
-                        new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week)))
-                    {
-                        while (reader.Read())
-                        {
-                            Tuple<double, double> elo = Tools.ComputeElo(
-                                currentElo,
-                                reader.GetUint16("opponent_ELO"),
-                                reader.GetBoolean("is_winner"),
-                                Tools.GetLevelEloCoeffK((Level)reader.GetByte("level_ID")));
-                            currentElo = Convert.ToUInt16(Math.Floor(elo.Item1));
-                        }
-                    }
-
-                    SqlTools.ExecuteNonQuery("UPDATE atp_ranking SET elo = @elo WHERE player_ID = @pid AND year = @year AND week = @week",
-                        new SqlParam("@pid", DbType.UInt64, player.ID),
-                        new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
-                        new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week),
-                        new SqlParam("@elo", DbType.UInt16, currentElo));
-
-                    #endregion
+                    ComputeEloAtDate(player, editionsOfTheWeek, year, week);
                 }
 
                 // calcule les classements (civil et glissant)
@@ -650,20 +625,62 @@ namespace TheTennisProject
         }
 
         /// <summary>
-        /// Charge les classements ATP depuis la base de données.
+        /// Calcule et met à jour en base de données les points ELO pour un joueur pour une semaine spécifiée.
         /// </summary>
-        public void CreateAtpRanking()
+        /// <param name="player">Le joueur.</param>
+        /// <param name="weekEditions">Les éditions de tournois pour la semaine spécifiée.</param>
+        /// <param name="year">L'année.</param>
+        /// <param name="week">Le numéro de semaine.</param>
+        public void ComputeEloAtDate(Player player, List<Edition> weekEditions, int year, uint week)
         {
-            string query = "select * from atp_ranking";
-            using (DataTableReader reader = SqlTools.ExecuteReader(query))
+            bool previousYearIs53 = Tools.YearIs53Week(year - 1);
+
+            // ELO de la semaine précédente
+            ushort currentElo =
+                SqlTools.ExecuteScalar("SELECT elo FROM atp_ranking WHERE player_ID = @pid AND (year < @year OR (year = @year AND week_no < @week)) ORDER BY year DESC, week_no DESC LIMIT 0, 1", Tools.DEFAULT_ELO,
+                new SqlParam("@pid", DbType.UInt64, player.ID),
+                new SqlParam("@year", DbType.UInt32, year),
+                new SqlParam("@week", DbType.UInt32, week));
+
+            if (weekEditions.Count > 0)
             {
-                while (reader.Read())
+                // Récupération des matchs du joueur pour les éditions de la semaine (les forfaits d'avant-match ne sont pas pris en compte)
+                // Note : le ELO des adversaires est celui de la semaine précédente, pas celui "live" au cours de l'édition
+                System.Text.StringBuilder sbQuery = new System.Text.StringBuilder();
+                sbQuery.AppendLine("SELECT (");
+                sbQuery.AppendLine("    SELECT level_ID FROM editions AS e WHERE e.ID = edition_ID");
+                sbQuery.AppendLine(") AS level_ID, (");
+                sbQuery.AppendLine("    SELECT elo FROM atp_ranking");
+                sbQuery.AppendLine("    WHERE player_ID = IF(winner_ID = @pid, loser_ID, winner_ID)");
+                sbQuery.AppendLine("    AND (year < @year OR (week_no < @week AND year = @year))");
+                sbQuery.AppendLine("    ORDER BY year DESC, week_no DESC LIMIT 0, 1");
+                sbQuery.AppendLine(") AS opponent_ELO, IF(winner_ID = @pid, 1, 0) AS is_winner FROM matches");
+                sbQuery.AppendLine("WHERE walkover = 0 AND (loser_ID = @pid OR winner_ID = @pid) AND edition_ID IN ({0})");
+                sbQuery.AppendLine("ORDER BY (SELECT date_begin FROM editions AS e where e.ID = edition_ID) ASC, IF(round_ID = 9, 1, round_ID) DESC");
+
+                using (DataTableReader reader = SqlTools.ExecuteReader(
+                    string.Format(sbQuery.ToString(), string.Join(", ", weekEditions.Select(_ => _.ID).ToList())),
+                    new SqlParam("@pid", DbType.UInt64, player.ID),
+                    new SqlParam("@year", DbType.UInt32, year),
+                    new SqlParam("@week", DbType.UInt32, week)))
                 {
-                    new AtpRanking(reader.GetUint64("player_ID"), reader.GetUint32("year"), reader.GetUint32("week_no"),
-                        reader.GetUint32("week_points"), reader.GetUint32("year_calendar_points"), reader.GetUint32("year_rolling_points"),
-                        reader.GetUint16("year_calendar_ranking"), reader.GetUint16("year_rolling_ranking"), reader.GetUint16("elo"));
+                    while (reader.Read())
+                    {
+                        Tuple<double, double> elo = Tools.ComputeElo(
+                            currentElo,
+                            reader.GetUint16Null("opponent_ELO") ?? Tools.DEFAULT_ELO,
+                            reader.GetBoolean("is_winner"),
+                            Tools.GetLevelEloCoeffK((Level)reader.GetByte("level_ID")));
+                        currentElo = Convert.ToUInt16(Math.Floor(elo.Item1));
+                    }
                 }
             }
+
+            SqlTools.ExecuteNonQuery("UPDATE atp_ranking SET elo = @elo WHERE player_ID = @pid AND year = @year AND week_no = @week",
+                new SqlParam("@pid", DbType.UInt64, player.ID),
+                new SqlParam("@year", DbType.UInt32, week == 1 ? (year - 1) : year),
+                new SqlParam("@week", DbType.UInt32, week == 1 ? (previousYearIs53 ? (uint)53 : 52) : week),
+                new SqlParam("@elo", DbType.UInt16, currentElo));
         }
 
         /// <summary>
